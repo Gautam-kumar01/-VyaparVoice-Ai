@@ -1,0 +1,8 @@
+.git
+__pycache__/
+*.pyc
+*.pyo
+backend/vyaparvoice.db
+test_*.py
+.env.local
+.vscode/

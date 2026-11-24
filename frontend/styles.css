@@ -1,0 +1,251 @@
+/* ============================================================
+   VyaparVoice AI - Warm Ledger Paper Minimal Theme
+   Authentic Bahi-Khata Grid Notebook Pattern (Matching User Screenshot)
+   Zero Blue - Rich Biscuit Cream, Pure White, Terracotta Orange & Warm Espresso
+   ============================================================ */
+
+:root {
+  --bg-paper: #fcebd1;
+  --bg-paper-light: #fef4e6;
+  --bg-card: #ffffff;
+  --bg-card-subtle: #fdfaf5;
+  --border-paper: #e6d3c0;
+  --border-card: #ecdccb;
+  --border-focus: #ea580c;
+  --text-dark: #23160e;
+  --text-body: #49382c;
+  --text-muted: #8a7667;
+  --orange-primary: #ea580c;
+  --orange-light: #fff7ed;
+  --orange-hover: #c2410c;
+  --amber-gold: #d97706;
+  --emerald-paid: #16a34a;
+}
+
+/* Base Body Styles with Authentic Ledger Grid Texture */
+body {
+  background-color: #fbebd4;
+  background-image: 
+    linear-gradient(to right, rgba(205, 168, 128, 0.22) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(205, 168, 128, 0.22) 1px, transparent 1px);
+  background-size: 34px 34px;
+  background-attachment: fixed;
+  color: var(--text-dark);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: -0.01em;
+  min-height: 100vh;
+}
+
+/* Custom Minimal Warm Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f3e5d5;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb {
+  background: #d8c2ad;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--orange-primary);
+}
+
+/* Minimal Crisp Card Surfaces */
+.minimal-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  box-shadow: 0 2px 10px -2px rgba(90, 50, 20, 0.05), 0 1px 3px 0 rgba(90, 50, 20, 0.02);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.minimal-card:hover {
+  border-color: #dfcaa8;
+  box-shadow: 0 8px 24px -4px rgba(90, 50, 20, 0.08), 0 2px 6px 0 rgba(90, 50, 20, 0.03);
+}
+
+/* Interactive Card Elevations */
+.interactive-card {
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.18s ease;
+}
+.interactive-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(234, 88, 12, 0.45);
+  box-shadow: 0 6px 18px -2px rgba(180, 83, 9, 0.12);
+}
+
+/* Subtle Step Entrance Animation */
+@keyframes stepReveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-step {
+  animation: stepReveal 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Pulse Animation for Live Mic */
+@keyframes warmPulse {
+  0% {
+    transform: scale(0.96);
+    box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.6);
+  }
+  70% {
+    transform: scale(1.04);
+    box-shadow: 0 0 0 16px rgba(234, 88, 12, 0);
+  }
+  100% {
+    transform: scale(0.96);
+    box-shadow: 0 0 0 0 rgba(234, 88, 12, 0);
+  }
+}
+
+.mic-active-pulse {
+  animation: warmPulse 1.8s infinite;
+}
+
+/* Status Badges */
+.badge-paid {
+  background-color: #ecfdf5;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.badge-dues {
+  background-color: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.badge-blocked {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+/* Multi-Page Navigation Tabs */
+.nav-tab {
+  cursor: pointer;
+  border-radius: 0.75rem;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.nav-tab.active-tab {
+  background-color: #fff7ed;
+  color: #ea580c;
+  border: 1px solid rgba(234, 88, 12, 0.35);
+  font-weight: 700;
+  box-shadow: 0 1px 3px 0 rgba(234, 88, 12, 0.08);
+}
+
+.nav-tab.inactive-tab {
+  background-color: transparent;
+  color: #5d4a3c;
+  border: 1px solid transparent;
+  font-weight: 500;
+}
+
+.nav-tab.inactive-tab:hover {
+  background-color: #f6eee5;
+  color: #23160e;
+}
+
+/* Smooth Fade In for Page Views */
+.app-view {
+  animation: fadeIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Gradient Text (Orange to Warm Amber) */
+.gradient-text {
+  background: linear-gradient(135deg, #ea580c 0%, #d97706 60%, #b45309 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Hide scrollbars for clean touch swipe on mobile */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Mobile Bottom Navigation Bar */
+.mobile-bottom-nav {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  box-shadow: 0 -4px 20px -2px rgba(90, 50, 20, 0.08);
+}
+
+.mobile-nav-tab {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 0.75rem;
+}
+
+.mobile-nav-tab.active-tab {
+  color: #ea580c;
+  background-color: #fff7ed;
+}
+
+.mobile-nav-tab.inactive-tab {
+  color: #8a7667;
+  background-color: transparent;
+}
+
+.mobile-nav-tab.inactive-tab:hover {
+  color: #23160e;
+  background-color: #faf7f3;
+}
+
+/* Phone Mockup Frame */
+.phone-mockup-frame {
+  border: 4px solid #23160e;
+  border-radius: 2rem;
+  background: #ffffff;
+  box-shadow: 0 20px 40px -10px rgba(70, 30, 10, 0.18), 0 0 0 1px rgba(234, 88, 12, 0.1);
+  overflow: hidden;
+}
+
+/* Comparison Feature Checkmark / Cross Pills */
+.feature-pill-good {
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+}
+
+.feature-pill-bad {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+/* Responsive Touch Target Helper */
+@media (max-width: 640px) {
+  body {
+    background-size: 24px 24px;
+    padding-bottom: 5.5rem;
+  }
+}

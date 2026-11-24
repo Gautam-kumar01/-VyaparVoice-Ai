@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VyaparVoice AI | व्यापार-वाणी - Smart Voice Bahi-Khata & Wholesale Billing</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="min-h-screen selection:bg-orange-500 selection:text-white pb-24 md:pb-12">
+
+  <!-- ========================================================= -->
+  <!-- 1. TOP APP BAR (Branding, Active Shop, Latency & Controls) -->
+  <!-- ========================================================= -->
+  <header class="border-b border-[#e8ddd4] bg-white/95 backdrop-blur-md sticky top-0 z-40 px-3 sm:px-6 py-2.5 flex items-center justify-between shadow-xs">
+    <!-- Logo & App Title -->
+    <div class="flex items-center space-x-2 sm:space-x-3 cursor-pointer" onclick="document.querySelector('[data-page=page-home]').click()">
+      <div class="relative flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 shadow-sm text-white font-bold flex-shrink-0">
+        <i data-lucide="mic-vocal" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+        <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></span>
+      </div>
+      <div>
+        <div class="flex items-center space-x-1.5 sm:space-x-2">
+          <h1 class="text-sm sm:text-base font-extrabold tracking-tight text-[#23160e] flex items-center gap-1">
+            VyaparVoice <span class="text-[10px] sm:text-[11px] font-mono px-1.5 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200">व्यापार-वाणी</span>
+          </h1>
+          <span class="hidden sm:inline-block text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 font-mono font-medium">Bharat AI</span>
+        </div>
+        <p class="text-[9px] sm:text-[11px] text-[#8a7667] truncate max-w-[180px] sm:max-w-none">Voice Bahi-Khata & Wholesale Billing</p>
+      </div>
+    </div>
+
+    <!-- Active Shop Switcher & Voice Controls -->
+    <div class="flex items-center space-x-1.5 sm:space-x-3">
+      <!-- Active Shop Selector -->
+      <div class="flex items-center space-x-1.5 sm:space-x-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#faf7f3] border border-[#e8ddd4] text-xs">
+        <i data-lucide="store" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-orange-600 flex-shrink-0"></i>
+        <div class="text-left hidden sm:block">
+          <span class="text-[9px] text-[#8a7667] block leading-none">Dukan (Shop):</span>
+          <span id="current-shop-name" class="font-bold text-[#23160e] text-xs">Gupta Wholesale Mart</span>
+        </div>
+        <button id="open-shop-switch-btn" class="text-[11px] text-orange-600 hover:text-orange-700 font-bold underline underline-offset-2">
+          बदलें <span class="hidden sm:inline">/ Login</span>
+        </button>
+      </div>
+
+      <!-- Live Latency Ticker -->
+      <div class="hidden lg:flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-[#faf7f3] border border-[#e8ddd4] font-mono text-xs text-[#8a7667]">
+        <span class="w-2 h-2 rounded-full bg-orange-500 animate-ping"></span>
+        <span id="latency-display" class="font-bold text-orange-600">⚡ 360ms</span>
+      </div>
+
+      <!-- Hindi Voice Dropdown & Controls -->
+      <div class="hidden sm:flex items-center space-x-1">
+        <select id="voice-select" class="hidden xl:block bg-white border border-[#e8ddd4] text-[#49382c] text-xs rounded-xl px-2 py-1.5 focus:outline-none focus:border-orange-500 max-w-[130px] truncate">
+          <option value="">Hindi Voice...</option>
+        </select>
+        <button id="test-voice-btn" class="hidden md:block px-2.5 py-1.5 rounded-xl bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-700 text-xs font-semibold" title="Test Voice Output">
+          आवाज़
+        </button>
+        <button id="tts-toggle" class="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-white hover:bg-orange-50 border border-[#e8ddd4] text-[#49382c] transition flex items-center gap-1 text-xs font-medium" title="Toggle Voice Output">
+          <i data-lucide="volume-2" id="tts-icon" class="w-4 h-4 text-orange-600"></i>
+          <span class="hidden md:inline">Voice: <b id="tts-state-text" class="text-orange-600">ON</b></span>
+        </button>
+      </div>
+
+      <!-- Register / Login Button -->
+      <button id="auth-btn" class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold transition text-xs flex items-center gap-1 shadow-sm whitespace-nowrap">
+        <i data-lucide="user" class="w-3.5 h-3.5"></i>
+        <span id="auth-btn-text">Dukan Login</span>
+      </button>
+
+      <!-- Reset Demo State -->
+      <button id="reset-btn" class="p-1.5 rounded-xl bg-white hover:bg-red-50 border border-[#e8ddd4] text-[#8a7667] hover:text-red-600 transition text-xs" title="Reset Demo Data">
+        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- ========================================================= -->
+  <!-- 2. MAIN NAVIGATION TABS (5 Connected Pages)                -->
+  <!-- ========================================================= -->
+  <nav class="border-b border-[#e8ddd4] bg-white sticky top-[53px] z-30 px-3 sm:px-6 py-2 shadow-xs flex items-center justify-between overflow-x-auto gap-2 no-scrollbar">
+    <div class="flex items-center space-x-1 sm:space-x-2 overflow-x-auto py-0.5 no-scrollbar">
+      <button class="nav-tab px-3 py-1.5 sm:px-4 sm:py-2 text-xs font-bold active-tab" data-page="page-home">
+        <i data-lucide="home" class="w-4 h-4 text-orange-600"></i>
+        <span>🏠 होम (Home)</span>
+      </button>
+      <button class="nav-tab px-3 py-1.5 sm:px-4 sm:py-2 text-xs font-bold inactive-tab" data-page="page-voice">
+        <i data-lucide="mic" class="w-4 h-4 text-orange-600"></i>
+        <span>🎙️ वॉइस बिलिंग (Voice Counter)</span>
+      </button>
+      <button class="nav-tab px-3 py-1.5 sm:px-4 sm:py-2 text-xs font-bold inactive-tab" data-page="page-khata">
+        <i data-lucide="book-open" class="w-4 h-4 text-amber-600"></i>
+        <span>📒 ग्राहक बही-खाता (Khata Ledgers)</span>
+      </button>
+      <button class="nav-tab px-3 py-1.5 sm:px-4 sm:py-2 text-xs font-bold inactive-tab" data-page="page-inventory">
+        <i data-lucide="package" class="w-4 h-4 text-orange-600"></i>
+        <span>📦 गोदाम स्टॉक (Stock)</span>
+      </button>
+      <button class="nav-tab px-3 py-1.5 sm:px-4 sm:py-2 text-xs font-bold inactive-tab" data-page="page-orders">
+        <i data-lucide="receipt" class="w-4 h-4 text-emerald-600"></i>
+        <span>📑 बिल व चालान (Orders)</span>
+      </button>
+    </div>
+
+    <!-- Live Active Shop Label Pill -->
+    <div class="hidden xl:flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-[11px] font-semibold text-orange-800 whitespace-nowrap">
+      <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+      <span>Cloud Synced (Neon DB)</span>
+    </div>
+  </nav>
+
+  <!-- ========================================================= -->
+  <!-- 3. TOP QUICK SHOP METRICS BAR                              -->
+  <!-- ========================================================= -->
+  <div class="bg-white/80 border-b border-[#e8ddd4] px-3 sm:px-6 py-2">
+    <div class="max-w-[1720px] mx-auto grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+      <div class="flex items-center space-x-2 sm:space-x-2.5 p-2 sm:p-2.5 rounded-xl bg-[#faf7f3] border border-[#e8ddd4]">
+        <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-orange-100 flex items-center justify-center text-orange-600 flex-shrink-0">
+          <i data-lucide="users" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+        </div>
+        <div class="min-w-0">
+          <span class="text-[9px] sm:text-[10px] text-[#8a7667] uppercase font-semibold block leading-tight truncate">कुल ग्राहक (Customers)</span>
+          <p id="stat-grahak" class="text-xs sm:text-sm font-bold font-mono text-[#23160e]">4 Accounts</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2 sm:space-x-2.5 p-2 sm:p-2.5 rounded-xl bg-[#faf7f3] border border-[#e8ddd4]">
+        <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-red-100 flex items-center justify-center text-red-600 flex-shrink-0">
+          <i data-lucide="clock" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+        </div>
+        <div class="min-w-0">
+          <span class="text-[9px] sm:text-[10px] text-[#8a7667] uppercase font-semibold block leading-tight truncate">मार्केट बकाया (Dues)</span>
+          <p id="stat-dues" class="text-xs sm:text-sm font-bold font-mono text-red-600 truncate">₹40,900</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2 sm:space-x-2.5 p-2 sm:p-2.5 rounded-xl bg-[#faf7f3] border border-[#e8ddd4]">
+        <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600 flex-shrink-0">
+          <i data-lucide="check-circle" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+        </div>
+        <div class="min-w-0">
+          <span class="text-[9px] sm:text-[10px] text-[#8a7667] uppercase font-semibold block leading-tight truncate">नकद चुकता (Paid Bills)</span>
+          <p id="stat-paid-orders" class="text-xs sm:text-sm font-bold font-mono text-emerald-600">1 Order</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2 sm:space-x-2.5 p-2 sm:p-2.5 rounded-xl bg-[#faf7f3] border border-[#e8ddd4]">
+        <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600 flex-shrink-0">
+          <i data-lucide="alert-circle" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+        </div>
+        <div class="min-w-0">
+          <span class="text-[9px] sm:text-[10px] text-[#8a7667] uppercase font-semibold block leading-tight truncate">उधार बिल (Dues Bills)</span>
+          <p id="stat-dues-orders" class="text-xs sm:text-sm font-bold font-mono text-amber-700">1 Order</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ========================================================= -->
+  <!-- PAGE 1: 🏠 होम (HOME / OVERVIEW & SIMPLE VISUAL EXPLAINER) -->
+  <!-- ========================================================= -->
+  <div id="page-home" class="app-view max-w-[1720px] mx-auto px-3 sm:px-6 pt-4 sm:pt-6 space-y-6 sm:space-y-8">
+    
+    <!-- 1. Hero Banner: Merchant Visual + Spoken AI Simulation -->
+    <div class="minimal-card rounded-3xl p-5 sm:p-8 lg:p-10 bg-white/95 border border-[#e8d7c4] shadow-md relative overflow-hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center">
+        
+        <!-- Left 7 Cols: Headline, Value Prop & Big CTAs -->
+        <div class="lg:col-span-7 space-y-4 sm:space-y-5">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-100 text-orange-900 text-[11px] sm:text-xs font-bold tracking-tight">
+            <span class="w-2 h-2 rounded-full bg-orange-600 animate-pulse"></span>
+            <span>⚡ भारत का पहला Voice AI बही-खाता • 100% नि:शुल्क & सुरक्षित</span>
+          </div>
+
+          <h2 class="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-[#23160e] tracking-tight leading-[1.18]">
+            दुकान का हिसाब उंगलियों से नहीं, <br />
+            <span class="gradient-text">सीधे अपनी आवाज़ से 1 सेकंड में संभालें!</span>
+          </h2>
+
+          <p class="text-xs sm:text-sm lg:text-base text-[#5d4a3c] leading-relaxed max-w-xl">
+            कागज़ की डायरी में पन्ने पलटना और कैलकुलेटर में सिर खपाना बंद करें। काउंटर पर ग्राहक की भीड़ हो या हाथ में सामान — <strong>बस अपनी आम बोलचाल (हिंदी/हिंग्लिश) में बोलें।</strong> AI तुरंत पक्का बिल बनाएगा, स्टॉक घटाएगा, ₹20,000 सुरक्षा लिमिट जाँचेगा और ग्राहक के WhatsApp पर पक्का चालान भेजेगा!
+          </p>
+
+          <!-- 2 Big Primary CTA Buttons -->
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
+            <button class="px-5 py-3.5 sm:px-6 rounded-2xl bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-orange-600/25 transition flex items-center justify-center gap-2 active:scale-95 cursor-pointer" onclick="document.querySelector('[data-page=page-voice]').click()">
+              <i data-lucide="mic" class="w-5 h-5"></i>
+              🎙️ आवाज़ से बिल बनाएं (Voice Counter)
+            </button>
+            <button class="px-5 py-3.5 sm:px-6 rounded-2xl bg-[#faf6f0] hover:bg-orange-50 border border-[#ecdccb] text-[#23160e] font-extrabold text-xs sm:text-sm transition flex items-center justify-center gap-2 active:scale-95 cursor-pointer" onclick="document.querySelector('[data-page=page-khata]').click()">
+              <i data-lucide="book-open" class="w-5 h-5 text-amber-600"></i>
+              📒 ग्राहकों का बही-खाता देखें (View Khata)
+            </button>
+          </div>
+
+          <!-- Trust Badges -->
+          <div class="pt-4 border-t border-[#f0e2d4] flex flex-wrap items-center gap-2.5 sm:gap-4 text-xs text-[#8a7667]">
+            <span class="flex items-center gap-1.5 text-emerald-800 font-semibold bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 text-[11px] sm:text-xs">
+              <i data-lucide="shield-check" class="w-4 h-4 text-emerald-600 flex-shrink-0"></i> 100% सुरक्षित क्लाउड बही-खाता
+            </span>
+            <span class="flex items-center gap-1.5 text-red-800 font-semibold bg-red-50 px-2.5 py-1 rounded-lg border border-red-200 text-[11px] sm:text-xs">
+              <i data-lucide="alert-octagon" class="w-4 h-4 text-red-600 flex-shrink-0"></i> ₹20,000 सुरक्षा शील्ड
+            </span>
+            <span class="flex items-center gap-1.5 text-emerald-800 font-semibold bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 text-[11px] sm:text-xs">
+              <i data-lucide="message-circle" class="w-4 h-4 text-emerald-600 flex-shrink-0"></i> WhatsApp डिजिटल चालान
+            </span>
+          </div>
+        </div>
+
+        <!-- Right 5 Cols: Interactive Phone Mockup & Spoken Simulator -->
+        <div class="lg:col-span-5 flex justify-center">
+          <div class="w-full max-w-md phone-mockup-frame p-4 sm:p-5 space-y-3.5">
+            
+            <!-- Mockup Status Bar -->
+            <div class="flex items-center justify-between text-[11px] text-[#8a7667] pb-2 border-b border-[#f0e6dc]">
+              <span class="font-bold flex items-center gap-1 text-orange-600">
+                <i data-lucide="store" class="w-3.5 h-3.5"></i> VyaparVoice Counter
+              </span>
+              <span class="font-mono text-[10px] bg-orange-50 text-orange-800 px-2 py-0.5 rounded-full border border-orange-200 font-bold">
+                ⚡ 360ms Live Speed
+              </span>
+            </div>
+
+            <!-- Merchant Photo Banner inside Phone -->
+            <div class="relative h-28 sm:h-32 rounded-2xl overflow-hidden border border-[#ecdccb]">
+              <img src="assets/hero-merchant.jpg" alt="VyaparVoice Merchant" class="w-full h-full object-cover object-top">
+              <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end p-2.5">
+                <span class="text-white text-xs font-bold flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                  काउंटर पर लाइव बोलिए — टाइपिंग की ज़रूरत नहीं
+                </span>
+              </div>
+            </div>
+
+            <!-- Spoken Voice Bubble 1 -->
+            <div class="p-3 rounded-2xl bg-orange-50 border border-orange-200 text-xs">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-orange-800 flex items-center gap-1">
+                  <i data-lucide="mic" class="w-3 h-3 text-orange-600"></i> दुकानदार बोला (Voice Input):
+                </span>
+                <span class="text-[9px] font-mono text-orange-700">Hinglish Audio</span>
+              </div>
+              <p class="font-bold text-[#23160e] text-xs sm:text-[13px]">
+                "शर्मा जी को 2 पेटी पारले-जी भेजो नकद में!"
+              </p>
+            </div>
+
+            <!-- Autonomous AI Action Trace (Simulated in Mockup) -->
+            <div class="p-3 rounded-2xl bg-[#faf7f3] border border-[#ecdccb] space-y-1.5 text-[11px]">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-[#8a7667] block">
+                ⚡ AI एजेंट का तुरंत एक्शन (1 Workflow • 3 Tools):
+              </span>
+              <div class="space-y-1 text-[#23160e]">
+                <div class="flex items-center gap-1.5 text-emerald-700 font-semibold">
+                  <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+                  <span>1. स्टॉक घटाया: पारले-जी (-2 पेटी, 98 बची)</span>
+                </div>
+                <div class="flex items-center gap-1.5 text-emerald-700 font-semibold">
+                  <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+                  <span>2. सुरक्षा चेक: बकाया ₹9,200 &lt; ₹20,000 (Approved)</span>
+                </div>
+                <div class="flex items-center gap-1.5 text-emerald-700 font-semibold">
+                  <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+                  <span>3. पक्का बिल: #ORD-1092 • ₹1,840 चुकता (PAID ✓)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- WhatsApp Receipt Preview Bubble -->
+            <div class="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between text-xs">
+              <div class="flex items-center gap-2">
+                <i data-lucide="message-square" class="w-4 h-4 text-emerald-600 flex-shrink-0"></i>
+                <div>
+                  <span class="text-[10px] uppercase font-bold text-emerald-900 block leading-tight">WhatsApp Outbox</span>
+                  <p class="text-[11px] text-emerald-800 font-medium">शर्मा जी को चालान PDF रसीद भेज दी गई</p>
+                </div>
+              </div>
+              <span class="px-2 py-0.5 rounded-md bg-emerald-600 text-white font-bold text-[10px]">
+                PAID ✓
+              </span>
+            </div>
+
+            <!-- Listen Demo Audio Button -->
+            <button class="w-full py-2.5 rounded-xl bg-[#faf7f3] hover:bg-orange-50 border border-[#ecdccb] text-orange-700 font-bold text-xs flex items-center justify-center gap-2 transition active:scale-95" onclick="if(window.speechSynthesis){ const u = new SpeechSynthesisUtterance('शर्मा जी का 2 पेटी पारले जी का नकद बिल कट गया है, WhatsApp पर रसीद भेज दी गई है!'); u.lang='hi-IN'; window.speechSynthesis.speak(u); }">
+              <i data-lucide="volume-2" class="w-4 h-4 text-orange-600"></i>
+              ▶️ डेमो आवाज़ सुनें (Tap to Listen Audio)
+            </button>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- 2. Trust & Scale Metrics Bar (4 Responsive Cards) -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div class="minimal-card rounded-2xl p-4 sm:p-5 bg-white border border-[#e8ddd4] text-center sm:text-left">
+        <span class="text-2xl sm:text-3xl font-extrabold text-orange-600 font-mono block">6.3 Cr+</span>
+        <h4 class="text-xs sm:text-sm font-bold text-[#23160e] mt-1">भारत के व्यापारियों के लिए</h4>
+        <p class="text-[11px] text-[#8a7667] mt-0.5">किराना, होलसेल, गल्ला व डिस्ट्रीब्यूशन</p>
+      </div>
+
+      <div class="minimal-card rounded-2xl p-4 sm:p-5 bg-white border border-[#e8ddd4] text-center sm:text-left">
+        <span class="text-2xl sm:text-3xl font-extrabold text-orange-600 font-mono block">⚡ 360ms</span>
+        <h4 class="text-xs sm:text-sm font-bold text-[#23160e] mt-1">तुरंत आवाज़ रिस्पांस स्पीड</h4>
+        <p class="text-[11px] text-[#8a7667] mt-0.5">Gemini 2.0 Live Voice API संचालित</p>
+      </div>
+
+      <div class="minimal-card rounded-2xl p-4 sm:p-5 bg-white border border-[#e8ddd4] text-center sm:text-left">
+        <span class="text-2xl sm:text-3xl font-extrabold text-red-600 font-mono block">₹20,000</span>
+        <h4 class="text-xs sm:text-sm font-bold text-[#23160e] mt-1">सुरक्षित उधार लिमिट सीलिंग</h4>
+        <p class="text-[11px] text-[#8a7667] mt-0.5">हद से ज्यादा उधार पर तुरंत AI रोक</p>
+      </div>
+
+      <div class="minimal-card rounded-2xl p-4 sm:p-5 bg-white border border-[#e8ddd4] text-center sm:text-left">
+        <span class="text-2xl sm:text-3xl font-extrabold text-emerald-600 font-mono block">100%</span>
+        <h4 class="text-xs sm:text-sm font-bold text-[#23160e] mt-1">WhatsApp डिजिटल प्रमाण</h4>
+        <p class="text-[11px] text-[#8a7667] mt-0.5">PAID व DUES चालान के साथ पक्का सबूत</p>
+      </div>
+    </div>
+
+
+    <!-- 3. Side-by-Side Comparison: पुरानी कागज़ की डायरी vs व्यापार-वाणी AI -->
+    <div class="minimal-card rounded-3xl p-5 sm:p-8 bg-white/95 border border-[#e8ddd4]">
+      <div class="text-center max-w-2xl mx-auto mb-6">
+        <span class="text-xs font-bold uppercase tracking-wider text-orange-600 bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
+          Why Shopkeepers Choose VyaparVoice
+        </span>
+        <h3 class="text-xl sm:text-2xl font-extrabold text-[#23160e] mt-2">
+          पुरानी कागज़ की डायरी बनाम व्यापार-वाणी AI
+        </h3>
+        <p class="text-xs sm:text-sm text-[#8a7667] mt-1">
+          देखें कि आधुनिक आवाज़ तकनीक आपकी दुकान के रोज़ाना 2 घंटे और हज़ारों रुपये कैसे बचाती है:
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        
+        <!-- Bad Old Way (Paper Diary) -->
+        <div class="p-5 sm:p-6 rounded-2xl bg-red-50/50 border border-red-200 space-y-3">
+          <div class="flex items-center gap-2 pb-3 border-b border-red-200">
+            <span class="w-8 h-8 rounded-xl bg-red-100 text-red-600 flex items-center justify-center font-bold text-base">
+              ❌
+            </span>
+            <div>
+              <h4 class="text-sm font-extrabold text-red-900">पुरानी कागज़ की डायरी (परेशानी और नुकसान)</h4>
+              <span class="text-[10px] text-red-700">धीमा, असुविधाजनक और जोखिम भरा तरीका</span>
+            </div>
+          </div>
+
+          <div class="space-y-2.5 text-xs text-[#49382c]">
+            <div class="flex items-start gap-2">
+              <span class="text-red-500 font-bold mt-0.5">✕</span>
+              <span><strong>रोज़ाना 2 घंटे की बर्बादी:</strong> शाम को दुकान बंद करने के बाद पन्ने पलटने और जोड़-घटाव में सिरदर्द।</span>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="text-red-500 font-bold mt-0.5">✕</span>
+              <span><strong>उधारी पर झगड़ा:</strong> ग्राहक से "मैंने तो पैसे दे दिए थे" को लेकर आए दिन बहस और ग्राहक टूटने का डर।</span>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="text-red-500 font-bold mt-0.5">✕</span>
+              <span><strong>पैसा डूबने का बड़ा खतरा:</strong> ₹20k से ज्यादा का उधार कब चढ़ गया, पता ही नहीं चलता और मार्केट में पैसा फंस जाता है।</span>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="text-red-500 font-bold mt-0.5">✕</span>
+              <span><strong>डायरी का नुकसान:</strong> पन्ना फट जाए, पानी गिर जाए या डायरी खो जाए तो सालों का हिसाब हमेशा के लिए गायब।</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Good Modern Way (VyaparVoice AI) -->
+        <div class="p-5 sm:p-6 rounded-2xl bg-emerald-50/50 border border-emerald-200 space-y-3">
+          <div class="flex items-center gap-2 pb-3 border-b border-emerald-200">
+            <span class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-base">
+              ✅
+            </span>
+            <div>
+              <h4 class="text-sm font-extrabold text-emerald-900">व्यापार-वाणी AI (तेज़, सुरक्षित और डिजिटल)</h4>
+              <span class="text-[10px] text-emerald-700">1 सेकंड में आवाज़ से पूरा हिसाब और 100% सुरक्षा</span>
+            </div>
+          </div>
+
+          <div class="space-y-2.5 text-xs text-[#49382c]">
+            <div class="flex items-start gap-2">
+              <span class="text-emerald-600 font-bold mt-0.5">✓</span>
+              <span><strong>1 सेकंड में बोलकर एंट्री:</strong> काउंटर पर खड़े-खड़े बस बोलिए — कोई टाइपिंग नहीं, बिल और स्टॉक तुरंत तैयार!</span>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="text-emerald-600 font-bold mt-0.5">✓</span>
+              <span><strong>WhatsApp डिजिटल सबूत:</strong> ग्राहक के फोन पर 1 सेकंड में पक्की रसीद, कोई झगड़ा या भ्रम नहीं।</span>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="text-emerald-600 font-bold mt-0.5">✓</span>
+              <span><strong>₹20,000 सुरक्षा शील्ड:</strong> अगर पुराना बकाया 20k से ज्यादा है, तो AI तुरंत मना कर देगा — <em>"पहले पुराना दो!"</em>।</span>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="text-emerald-600 font-bold mt-0.5">✓</span>
+              <span><strong>100% सुरक्षित क्लाउड सर्वर:</strong> Neon PostgreSQL पर डेटा हमेशा सुरक्षित। फोन खोने पर भी हिसाब सुरक्षित!</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- 4. 4 Core Visual Feature Cards (Khatabook Style) -->
+    <div>
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-base sm:text-lg font-extrabold text-[#23160e] flex items-center gap-2">
+            <i data-lucide="sparkles" class="w-5 h-5 text-orange-600"></i>
+            व्यापार-वाणी के 4 सबसे बड़े फायदे (Features in Simple Words):
+          </h3>
+          <p class="text-xs text-[#8a7667]">हर फीचर को इस तरह बनाया गया है कि कोई भी दुकानदार बिना सीखे चला सके</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <!-- Card 1: Voice Billing -->
+        <div class="minimal-card rounded-2xl p-5 hover:border-orange-400 transition cursor-pointer group flex flex-col justify-between" onclick="document.querySelector('[data-page=page-voice]').click()">
+          <div>
+            <div class="w-12 h-12 rounded-2xl bg-orange-100 flex items-center justify-center text-orange-600 mb-3 text-2xl font-bold shadow-xs group-hover:scale-105 transition">
+              🎙️
+            </div>
+            <h4 class="text-sm font-bold text-[#23160e] group-hover:text-orange-600 transition">1. बोलकर 1 सेकंड में बिलिंग</h4>
+            <p class="text-xs text-[#5d4a3c] mt-1.5 leading-relaxed">
+              माइक दबाएं और बोलें — <em>"शर्मा जी को 2 पेटी पारले-जी नकद"</em>। 1 सेकंड में बिल बनेगा और गोदाम से स्टॉक कट जाएगा। टाइपिंग की कोई ज़रूरत नहीं!
+            </p>
+          </div>
+          <span class="inline-flex items-center gap-1 mt-4 text-xs font-bold text-orange-600 group-hover:translate-x-1 transition">
+            काउंटर पर बोलें <span>→</span>
+          </span>
+        </div>
+
+        <!-- Card 2: 20k Safety Guard -->
+        <div class="minimal-card rounded-2xl p-5 hover:border-red-400 transition cursor-pointer group flex flex-col justify-between" onclick="document.querySelector('[data-page=page-khata]').click()">
+          <div>
+            <div class="w-12 h-12 rounded-2xl bg-red-100 flex items-center justify-center text-red-600 mb-3 text-2xl font-bold shadow-xs group-hover:scale-105 transition">
+              🛑
+            </div>
+            <h4 class="text-sm font-bold text-[#23160e] group-hover:text-red-600 transition">2. ₹20,000 सुरक्षा ब्लॉक</h4>
+            <p class="text-xs text-[#5d4a3c] mt-1.5 leading-relaxed">
+              अगर किसी ग्राहक का पुराना बकाया ₹20,000 से ऊपर है, तो AI सामान देने से तुरंत रोक देगा — <em>"पहले पुराना पैसा दो, फिर सामान मिलेगा!"</em>। उधार नहीं डूबेगा!
+            </p>
+          </div>
+          <span class="inline-flex items-center gap-1 mt-4 text-xs font-bold text-red-600 group-hover:translate-x-1 transition">
+            बकाया नियम देखें <span>→</span>
+          </span>
+        </div>
+
+        <!-- Card 3: Digital Khata & Erase Reports -->
+        <div class="minimal-card rounded-2xl p-5 hover:border-amber-400 transition cursor-pointer group flex flex-col justify-between" onclick="document.querySelector('[data-page=page-khata]').click()">
+          <div>
+            <div class="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-700 mb-3 text-2xl font-bold shadow-xs group-hover:scale-105 transition">
+              📒
+            </div>
+            <h4 class="text-sm font-bold text-[#23160e] group-hover:text-amber-700 transition">3. ग्राहक बही-खाता व रिपोर्ट</h4>
+            <p class="text-xs text-[#5d4a3c] mt-1.5 leading-relaxed">
+              हर ग्राहक की डिजिटल पासबुक। किसने कब क्या लिया, कितना बाकी है। जब चाहें नया ग्राहक जोड़ें या किसी का पूरा खाता <strong>मिटाएं / Delete</strong> करें!
+            </p>
+          </div>
+          <span class="inline-flex items-center gap-1 mt-4 text-xs font-bold text-amber-700 group-hover:translate-x-1 transition">
+            बही-खाता खोलें <span>→</span>
+          </span>
+        </div>
+
+        <!-- Card 4: WhatsApp Receipt -->
+        <div class="minimal-card rounded-2xl p-5 hover:border-emerald-400 transition cursor-pointer group flex flex-col justify-between" onclick="document.querySelector('[data-page=page-orders]').click()">
+          <div>
+            <div class="w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-600 mb-3 text-2xl font-bold shadow-xs group-hover:scale-105 transition">
+              📲
+            </div>
+            <h4 class="text-sm font-bold text-[#23160e] group-hover:text-emerald-700 transition">4. WhatsApp डिजिटल रसीद</h4>
+            <p class="text-xs text-[#5d4a3c] mt-1.5 leading-relaxed">
+              नकद है तो <strong>PAID ✓ (चुकता)</strong>, उधार है तो <strong>DUES ⏳ (बाकी)</strong> का ठप्पा। ग्राहक के मोबाइल पर 1 सेकंड में डिजिटल चालान चला जाता है।
+            </p>
+          </div>
+          <span class="inline-flex items-center gap-1 mt-4 text-xs font-bold text-emerald-700 group-hover:translate-x-1 transition">
+            सभी बिल देखें <span>→</span>
+          </span>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- 5. 3-Step Simple Pictorial Guide (How It Works) -->
+    <div class="minimal-card rounded-3xl p-5 sm:p-8 bg-[#faf7f3] border border-[#e8ddd4]">
+      <div class="text-center max-w-xl mx-auto mb-6">
+        <span class="text-xs font-bold uppercase tracking-wider text-orange-600 bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
+          Easy 3-Step Workflow
+        </span>
+        <h3 class="text-lg sm:text-xl font-extrabold text-[#23160e] mt-2">
+          यह कैसे काम करता है? (How It Works in 3 Steps)
+        </h3>
+        <p class="text-xs text-[#8a7667] mt-1">कोई ट्रेनिंग की ज़रूरत नहीं — जैसे दुकान पर बात करते हैं, वैसे बोलें:</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        
+        <div class="p-5 rounded-2xl bg-white border border-[#ecdccb] space-y-2 relative">
+          <div class="w-8 h-8 rounded-xl bg-orange-100 text-orange-700 font-extrabold flex items-center justify-center text-sm">
+            1
+          </div>
+          <h4 class="text-sm font-extrabold text-[#23160e]">कदम 1: अपनी भाषा में बोलें</h4>
+          <p class="text-xs text-[#5d4a3c] leading-relaxed">
+            हिंदी, हिंग्लिश, या अपनी स्थानीय भाषा में बोलें। बीच में गलती होने पर तुरंत सुधारें — <em>"रुको 10 नहीं 15 करो"</em> — AI अपने आप समझता है।
+          </p>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-white border border-[#ecdccb] space-y-2 relative">
+          <div class="w-8 h-8 rounded-xl bg-orange-100 text-orange-700 font-extrabold flex items-center justify-center text-sm">
+            2
+          </div>
+          <h4 class="text-sm font-extrabold text-[#23160e]">कदम 2: AI एजेंट काम पूरा करेगा</h4>
+          <p class="text-xs text-[#5d4a3c] leading-relaxed">
+            गोदाम का स्टॉक घटाएगा, ग्राहक का पुराना बकाया जाँचेगा और ₹20,000 की सुरक्षा सीमा का नियम लागू करेगा।
+          </p>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-white border border-[#ecdccb] space-y-2 relative">
+          <div class="w-8 h-8 rounded-xl bg-orange-100 text-orange-700 font-extrabold flex items-center justify-center text-sm">
+            3
+          </div>
+          <h4 class="text-sm font-extrabold text-[#23160e]">कदम 3: पक्का बिल व WhatsApp</h4>
+          <p class="text-xs text-[#5d4a3c] leading-relaxed">
+            PAID या DUES की मुहर लगेगी, ग्राहक के WhatsApp पर डिजिटल चालान जाएगा और आवाज़ में पुष्टि सुनाई देगी।
+          </p>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- 6. Real Merchant Testimonials (दुकानदारों की जुबानी) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="p-5 rounded-2xl bg-white border border-[#e8ddd4] shadow-xs space-y-2.5">
+        <div class="flex items-center gap-2 text-amber-500 text-xs">
+          ★★★★★ <span class="text-[#8a7667] text-[11px] font-mono font-medium">(सदर बाज़ार, दिल्ली)</span>
+        </div>
+        <p class="text-xs sm:text-[13px] text-[#49382c] italic leading-relaxed">
+          "पहले शाम को दुकान बंद करने के बाद 2 घंटे बैठकर बही-खाता मिलाना पड़ता था। अब दिनभर ग्राहक जो मांगता है, मैं बस माइक में बोल देता हूँ — बिल, स्टॉक और WhatsApp सब अपने आप हो जाता है!"
+        </p>
+        <div class="pt-2 border-t border-[#f0e6dc] flex items-center justify-between">
+          <div>
+            <h5 class="text-xs font-bold text-[#23160e]">मुकेश अग्रवाल</h5>
+            <span class="text-[10px] text-[#8a7667]">अग्रवाल डेली नीड्स (FMCG किराना)</span>
+          </div>
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">
+            सत्यापित व्यापारी ✓
+          </span>
+        </div>
+      </div>
+
+      <div class="p-5 rounded-2xl bg-white border border-[#e8ddd4] shadow-xs space-y-2.5">
+        <div class="flex items-center gap-2 text-amber-500 text-xs">
+          ★★★★★ <span class="text-[#8a7667] text-[11px] font-mono font-medium">(गांधी नगर, दिल्ली)</span>
+        </div>
+        <p class="text-xs sm:text-[13px] text-[#49382c] italic leading-relaxed">
+          "उधार वाले ग्राहकों को सामान देने में पहले डर लगता था कि कहीं पैसा न डूब जाए। अब ₹20,000 की लिमिट पर AI खुद ही ग्राहक को बोल देता है कि पहले पुराना दो, जिससे मेरा पैसा कभी नहीं अटकता!"
+        </p>
+        <div class="pt-2 border-t border-[#f0e6dc] flex items-center justify-between">
+          <div>
+            <h5 class="text-xs font-bold text-[#23160e]">रमेश कुमार</h5>
+            <span class="text-[10px] text-[#8a7667]">रमेश किराना & जनरल स्टोर</span>
+          </div>
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">
+            सत्यापित व्यापारी ✓
+          </span>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- 7. Bottom Call-To-Action Banner -->
+    <div class="rounded-3xl p-6 sm:p-8 bg-gradient-to-tr from-[#23160e] via-[#3a2012] to-[#23160e] text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-5">
+      <div class="space-y-1.5 text-center md:text-left">
+        <span class="text-[11px] font-mono uppercase tracking-wider text-orange-400 font-bold">100% Free • No Credit Card Required</span>
+        <h3 class="text-lg sm:text-2xl font-extrabold tracking-tight">
+          अपनी दुकान को आज ही बनाएं स्मार्ट & डिजिटल!
+        </h3>
+        <p class="text-xs text-[#d8c2ad] max-w-lg">
+          कागज़ छोड़िए, आवाज़ अपनाइए। 10 सेकंड में अपनी दुकान रजिस्टर करें या लाइव आवाज़ बिलिंग काउंटर आज़माएं।
+        </p>
+      </div>
+
+      <div class="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+        <button class="w-full sm:w-auto px-6 py-3 rounded-2xl bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-orange-600/30 transition flex items-center justify-center gap-2 active:scale-95 cursor-pointer whitespace-nowrap" onclick="document.querySelector('[data-page=page-voice]').click()">
+          <i data-lucide="mic" class="w-4 h-4"></i>
+          🎙️ अभी बोलकर बिल बनाएं
+        </button>
+        <button class="w-full sm:w-auto px-6 py-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs sm:text-sm transition flex items-center justify-center gap-2 active:scale-95 cursor-pointer whitespace-nowrap" onclick="document.getElementById('auth-btn').click()">
+          <i data-lucide="store" class="w-4 h-4"></i>
+          ➕ अपनी दुकान जोड़ें (Register)
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- ========================================================= -->
+  <!-- PAGE 2: 🎙️ वॉइस बिलिंग काउंटर (VOICE BILLING COUNTER)      -->
+  <!-- ========================================================= -->
+  <div id="page-voice" class="app-view hidden max-w-[1720px] mx-auto px-4 sm:px-6 pt-5 space-y-5">
+    
+    <!-- Quick Voice Chips -->
+    <div class="minimal-card rounded-2xl px-4 py-2.5 bg-white border border-[#e8ddd4] flex items-center justify-between overflow-x-auto text-xs gap-3">
+      <div class="flex items-center space-x-1.5 text-[#8a7667] whitespace-nowrap font-medium text-[11px]">
+        <i data-lucide="lightbulb" class="w-3.5 h-3.5 text-amber-500"></i>
+        <span>बोलकर देखें:</span>
+      </div>
+      <div class="flex items-center space-x-2 overflow-x-auto">
+        <button class="quick-chip px-3 py-1 rounded-full bg-[#faf7f3] hover:bg-orange-50 border border-[#e8ddd4] text-[#49382c] transition whitespace-nowrap text-[11px]" data-text="Sharma General Store ka 20 peti Parle-G aur 10 peti Good Day dispatch mein daalo, credit pe">
+          📦 "Sharma Store 20 peti Parle-G..."
+        </button>
+        <button class="quick-chip px-3 py-1 rounded-full bg-[#faf7f3] hover:bg-orange-50 border border-[#e8ddd4] text-[#49382c] transition whitespace-nowrap text-[11px]" data-text="Ruko ruko! Good Day cancel karo, uski jagah 15 peti Marie Gold kardo!">
+          ⚡ "Ruko! 15 peti Marie Gold kardo"
+        </button>
+        <button class="quick-chip px-3 py-1 rounded-full bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 transition whitespace-nowrap text-[11px] font-semibold" data-text="Verma Ji Bakery ka hisaab dikhao, kitna bakaya hai?">
+          🛑 "Verma Ji hisaab dikhao" (>20k Block)
+        </button>
+        <button class="quick-chip px-3 py-1 rounded-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 transition whitespace-nowrap text-[11px] font-semibold" data-text="Verma ji ne 10000 cash jama kiya, khate mein entry daalo">
+          💵 "Verma ji ne 10,000 jama kiya"
+        </button>
+        <button class="quick-chip px-3 py-1 rounded-full bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 transition whitespace-nowrap text-[11px] font-semibold" data-text="Raju Halwai ka naya khata kholo aur 3000 ka bill likho">
+          ✨ "Raju Halwai naya khata kholo"
+        </button>
+        <button class="quick-chip px-3 py-1 rounded-full bg-[#faf7f3] hover:bg-orange-50 border border-[#e8ddd4] text-[#49382c] transition whitespace-nowrap text-[11px]" data-text="Galti se bol diya tha, pichla transaction poora undo aur cancel karo.">
+          ↩️ "Pichla transaction cancel karo"
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Voice Billing Workspace (2-Column Focused Layout) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      
+      <!-- Left Column: Audio Waveform, Mic & Manual Input (Col 6) -->
+      <div class="lg:col-span-6 space-y-5">
+        
+        <!-- Live Voice Terminal Card -->
+        <div class="minimal-card rounded-2xl p-6 shadow-sm relative overflow-hidden">
+          <div class="flex items-center justify-between mb-3.5">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-orange-700 flex items-center gap-1.5">
+              <i data-lucide="radio" class="w-4 h-4 text-orange-600"></i>
+              वॉइस बिलिंग काउंटर (Live Voice Terminal)
+            </h2>
+            <span class="text-[10px] font-mono text-orange-700 bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-200">Hinglish / Hindi Stream</span>
+          </div>
+
+          <!-- Canvas Audio Waveform -->
+          <div class="relative w-full h-28 bg-[#faf7f3] rounded-xl border border-[#e8ddd4] overflow-hidden mb-5 flex items-center justify-center">
+            <canvas id="waveform-canvas" class="w-full h-full"></canvas>
+            <div id="mic-status-overlay" class="absolute inset-0 flex items-center justify-center bg-white/40 backdrop-blur-[1px] pointer-events-none">
+              <span class="text-xs font-medium text-[#8a7667] flex items-center gap-1.5">
+                <i data-lucide="mic" class="w-3.5 h-3.5 text-orange-600"></i>
+                माइक बटन दबाकर बोलें या नीचे से कोई चिप चुनें
+              </span>
+            </div>
+          </div>
+
+          <!-- Big Pulse Mic Button -->
+          <div class="flex flex-col items-center justify-center space-y-2.5">
+            <button id="mic-btn" class="group relative flex items-center justify-center w-[76px] h-[76px] rounded-full bg-gradient-to-tr from-orange-600 to-amber-500 hover:scale-105 active:scale-95 transition-all duration-200 shadow-lg shadow-orange-600/30 border-4 border-white cursor-pointer">
+              <i data-lucide="mic" id="mic-main-icon" class="w-8 h-8 text-white transition"></i>
+              <span id="mic-pulse" class="hidden absolute inset-0 rounded-full bg-orange-500 animate-ping opacity-30"></span>
+            </button>
+            <div class="text-center">
+              <p id="mic-caption" class="text-xs font-bold text-[#23160e]">Tap to Speak (माइक दबाएं)</p>
+              <p class="text-[10px] text-[#8a7667]">दुकान का कोई भी आर्डर, नकद या उधार हिसाब बोलें</p>
+            </div>
+          </div>
+
+          <!-- Spoken Text Command Fallback -->
+          <div class="mt-5 pt-4 border-t border-[#f0e6dc]">
+            <label class="block text-xs font-medium text-[#49382c] mb-1.5 flex items-center justify-between">
+              <span>या बोलचाल की भाषा में टाइप करें:</span>
+              <span class="text-[10px] text-orange-600 font-mono">Press Enter ↵</span>
+            </label>
+            <div class="flex gap-2">
+              <input type="text" id="manual-text-input" placeholder="e.g. Sharma ji ka 20 peti Parle-G bhej do cash mein..." class="flex-1 bg-[#faf7f3] border border-[#e8ddd4] focus:border-orange-500 rounded-xl px-3.5 py-2 text-xs text-[#23160e] placeholder-[#a8988b] focus:outline-none font-mono transition">
+              <button id="send-text-btn" class="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                भेजें
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 1-Click Choreographed Hackathon Demo Acts -->
+        <div class="minimal-card rounded-2xl p-5 shadow-sm space-y-2">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-[#23160e] flex items-center gap-1.5">
+              <i data-lucide="play-circle" class="w-4 h-4 text-orange-600"></i>
+              1-क्लिक टेस्ट एक्ट्स (Demo Scenarios)
+            </h3>
+            <span class="text-[10px] font-mono text-orange-700 bg-orange-50 px-2 py-0.5 rounded border border-orange-200">Judges Demo</span>
+          </div>
+
+          <button class="demo-scenario-btn interactive-card w-full text-left p-3 rounded-xl bg-[#faf7f3] border border-[#e8ddd4] hover:border-orange-400 transition group" data-utterance="Sharma General Store ka 20 peti Parle-G aur 10 peti Good Day dispatch mein daalo, credit pe">
+            <div class="flex items-center justify-between mb-0.5">
+              <span class="text-xs font-bold text-[#23160e] group-hover:text-orange-600">Act 1: Multi-Step Hinglish Order (Chained Tools)</span>
+              <span class="text-[9px] px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 font-mono">Auto Order</span>
+            </div>
+            <p class="text-[11px] text-[#8a7667] italic truncate">"Sharma General Store ka 20 peti Parle-G aur 10 peti Good Day dispatch..."</p>
+          </button>
+
+          <button class="demo-scenario-btn interactive-card w-full text-left p-3 rounded-xl bg-[#faf7f3] border border-[#e8ddd4] hover:border-amber-400 transition group" data-utterance="Ruko ruko! Good Day cancel karo, uski jagah 15 peti Marie Gold kardo!">
+            <div class="flex items-center justify-between mb-0.5">
+              <span class="text-xs font-bold text-[#23160e] group-hover:text-amber-700">Act 2: Barge-In Interruption & Item Substitution</span>
+              <span class="text-[9px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-mono">Interruption</span>
+            </div>
+            <p class="text-[11px] text-[#8a7667] italic truncate">"Ruko ruko! Good Day cancel karo, uski jagah 15 peti Marie Gold kardo!"</p>
+          </button>
+
+          <button class="demo-scenario-btn interactive-card w-full text-left p-3 rounded-xl bg-[#faf7f3] border border-[#e8ddd4] hover:border-red-400 transition group" data-utterance="Verma Ji Bakery ka 50 bori Maida credit pe dispatch kardo.">
+            <div class="flex items-center justify-between mb-0.5">
+              <span class="text-xs font-bold text-[#23160e] group-hover:text-red-700">Act 3: ₹20,000 Credit Ceiling Hard Block</span>
+              <span class="text-[9px] px-2 py-0.5 rounded-full bg-red-100 text-red-800 font-mono">HITL Gate</span>
+            </div>
+            <p class="text-[11px] text-[#8a7667] italic truncate">"Verma Ji Bakery ka 50 bori Maida credit pe..." (Limit Block)</p>
+          </button>
+
+          <button class="demo-scenario-btn interactive-card w-full text-left p-3 rounded-xl bg-[#faf7f3] border border-[#e8ddd4] hover:border-orange-400 transition group" data-utterance="Galti se bol diya tha, pichla transaction poora undo aur cancel karo.">
+            <div class="flex items-center justify-between mb-0.5">
+              <span class="text-xs font-bold text-[#23160e] group-hover:text-orange-600">Act 4: Spoken Undo & Transaction Rollback</span>
+              <span class="text-[9px] px-2 py-0.5 rounded-full bg-stone-100 text-stone-800 font-mono">Undo</span>
+            </div>
+            <p class="text-[11px] text-[#8a7667] italic truncate">"Galti se bol diya tha, pichla transaction undo karo."</p>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Right Column: Speech Response, Live Trace & WhatsApp Challan (Col 6) -->
+      <div class="lg:col-span-6 space-y-5">
+        
+        <!-- Speech Read-back Response Bubble -->
+        <div class="minimal-card rounded-2xl p-4 shadow-sm relative overflow-hidden">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-orange-700 flex items-center gap-1.5">
+              <i data-lucide="message-square-quote" class="w-4 h-4 text-orange-600"></i>
+              AI एजेंट की आवाज़ (Spoken Voice Read-back)
+            </h3>
+            <span id="agent-voice-status" class="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Audio Ready
+            </span>
+          </div>
+          <div id="spoken-response-bubble" class="p-3.5 rounded-xl bg-[#faf7f3] border border-[#e8ddd4] text-[#23160e] text-xs font-medium leading-relaxed min-h-[60px] flex items-center">
+            "Aapka swagat hai VyaparVoice mein. Koi bhi order ya hisaab bolein, jaise 'Sharma ji ko 2 peti Parle-G bhej do cash me'."
+          </div>
+        </div>
+
+        <!-- Human-In-The-Loop (HITL) Alert Banner -->
+        <div id="hitl-banner" class="hidden rounded-2xl bg-red-50 border-2 border-red-400 p-4 shadow-md animate-pulse">
+          <div class="flex items-start space-x-3 mb-3">
+            <div class="p-2 rounded-xl bg-red-100 text-red-600 flex-shrink-0">
+              <i data-lucide="shield-alert" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h4 class="text-xs font-bold text-red-900 flex items-center gap-1.5">
+                ⚠️ Policy Exception: Supervisor Authorization Needed
+              </h4>
+              <p id="hitl-description" class="text-[11px] text-red-800 mt-0.5">
+                Customer credit limit exceeded. The automated execution was suspended for human judgment.
+              </p>
+            </div>
+          </div>
+          <div class="flex gap-2 justify-end pt-2 border-t border-red-200">
+            <button id="hitl-reject-btn" class="px-3 py-1.5 rounded-xl bg-white hover:bg-red-100 text-xs font-semibold text-red-800 border border-red-200 transition">
+              Reject Dispatch
+            </button>
+            <button id="hitl-approve-btn" class="px-3.5 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-xs font-bold text-white shadow-sm transition flex items-center gap-1">
+              <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+              Approve with Voice PIN
+            </button>
+          </div>
+        </div>
+
+        <!-- Agentic Orchestration Graph (Trace) -->
+        <div class="minimal-card rounded-2xl p-5 shadow-sm flex flex-col h-[320px]">
+          <div class="flex items-center justify-between pb-3 border-b border-[#f0e6dc]">
+            <div>
+              <h3 class="text-xs font-bold uppercase tracking-wider text-[#23160e] flex items-center gap-1.5">
+                <i data-lucide="cpu" class="w-4 h-4 text-orange-600"></i>
+                Agentic Orchestration Graph (Live Steps)
+              </h3>
+              <p class="text-[11px] text-[#8a7667]">Gemini multi-step autonomous tool calls</p>
+            </div>
+            <span id="step-count-badge" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200">0 Steps</span>
+          </div>
+
+          <div id="execution-trace-container" class="flex-1 overflow-y-auto pt-3 space-y-2.5 pr-1 text-xs">
+            <div class="flex items-start space-x-3 p-3 rounded-xl bg-[#faf7f3] border border-[#e8ddd4] text-xs text-[#8a7667]">
+              <i data-lucide="info" class="w-4 h-4 text-orange-600 mt-0.5"></i>
+              <div>
+                <p class="font-bold text-[#23160e]">Ready for Spoken Instructions</p>
+                <p class="text-[11px] text-[#8a7667] mt-0.5">Spoken intent will resolve entities, check inventory, validate credit policy, and commit transactions.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- WhatsApp Dispatch Challan Box -->
+        <div class="minimal-card rounded-2xl p-4 shadow-sm border-emerald-200">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center space-x-1.5 text-emerald-700">
+              <i data-lucide="message-circle" class="w-4 h-4"></i>
+              <h3 class="text-xs font-bold uppercase tracking-wider text-[#23160e]">WhatsApp e-Challan Outbox</h3>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button id="copy-whatsapp-btn" class="text-[10px] px-2 py-0.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition" title="Copy Text">
+                Copy
+              </button>
+              <span id="whatsapp-badge" class="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Latest Sent</span>
+            </div>
+          </div>
+          <div id="whatsapp-preview-box" class="p-3 rounded-xl bg-[#faf7f3] border border-[#e8ddd4] text-[#49382c] font-mono text-[11px] whitespace-pre-wrap leading-relaxed max-h-[110px] overflow-y-auto">
+No dispatch challan generated yet. Run an order to see the instant WhatsApp dispatch receipt.
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- ========================================================= -->
+  <!-- PAGE 3: 📒 ग्राहक बही-खाता (CUSTOMER KHATA & PASSBOOKS)   -->
+  <!-- ========================================================= -->
+  <div id="page-khata" class="app-view hidden max-w-[1720px] mx-auto px-4 sm:px-6 pt-5 space-y-5">
+    
+    <!-- Top Action Bar for Khata -->
+    <div class="minimal-card rounded-2xl p-4 bg-white border border-[#e8ddd4] flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div>
+        <h2 class="text-sm sm:text-base font-extrabold text-[#23160e] flex items-center gap-2">
+          <i data-lucide="book-open" class="w-5 h-5 text-amber-600"></i>
+          दुकान का डिजिटल बही-खाता (Customer Ledgers & Reports)
+        </h2>
+        <p class="text-xs text-[#8a7667]">किस ग्राहक पर कितना बकाया है, कब क्या खरीदा, नकद जमा करें या खाता मिटाएं</p>
+      </div>
+
+      <div class="flex items-center gap-2 w-full sm:w-auto">
+        <!-- Search Input -->
+        <div class="relative flex-1 sm:w-64">
+          <i data-lucide="search" class="w-4 h-4 text-[#8a7667] absolute left-3 top-2.5"></i>
+          <input type="text" id="customer-search-input" placeholder="ग्राहक का नाम ढूंढें..." class="w-full bg-[#faf7f3] border border-[#e8ddd4] rounded-xl pl-9 pr-3 py-1.5 text-xs text-[#23160e] focus:outline-none focus:border-orange-500">
+        </div>
+
+        <!-- Add Customer Button -->
+        <button id="open-add-cust-modal-btn" class="px-3.5 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm whitespace-nowrap">
+          <i data-lucide="user-plus" class="w-4 h-4"></i>
+          + नया ग्राहक जोड़ें
+        </button>
+      </div>
+    </div>
+
+    <!-- Customer List Container -->
+    <div class="minimal-card rounded-2xl p-5 bg-white border border-[#e8ddd4]">
+      <div class="flex items-center justify-between pb-3 border-b border-[#f0e6dc] mb-3">
+        <span class="text-xs font-bold text-[#8a7667] uppercase tracking-wider">ग्राहक सूची (Customers Directory)</span>
+        <span class="text-xs text-[#8a7667]">क्लिक करके पासबुक व रिपोर्ट देखें</span>
+      </div>
+
+      <div id="customers-list" class="space-y-3">
+        <!-- Populated dynamically by app.js with Khatabook-style cards and Erase button -->
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- ========================================================= -->
+  <!-- PAGE 4: 📦 गोदाम स्टॉक (WAREHOUSE INVENTORY)              -->
+  <!-- ========================================================= -->
+  <div id="page-inventory" class="app-view hidden max-w-[1720px] mx-auto px-4 sm:px-6 pt-5 space-y-5">
+    
+    <div class="minimal-card rounded-2xl p-4 bg-white border border-[#e8ddd4] flex items-center justify-between">
+      <div>
+        <h2 class="text-sm sm:text-base font-extrabold text-[#23160e] flex items-center gap-2">
+          <i data-lucide="package" class="w-5 h-5 text-orange-600"></i>
+          गोदाम इन्वेंटरी व स्टॉक (Warehouse Inventory)
+        </h2>
+        <p class="text-xs text-[#8a7667]">लाइव स्टॉक काउंट, यूनिट भाव और कम स्टॉक की चेतावनी</p>
+      </div>
+    </div>
+
+    <div class="minimal-card rounded-2xl p-5 bg-white border border-[#e8ddd4]">
+      <div id="products-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- ========================================================= -->
+  <!-- PAGE 5: 📑 बिल व चालान इतिहास (ORDERS & INVOICES)          -->
+  <!-- ========================================================= -->
+  <div id="page-orders" class="app-view hidden max-w-[1720px] mx-auto px-4 sm:px-6 pt-5 space-y-5">
+    
+    <div class="minimal-card rounded-2xl p-4 bg-white border border-[#e8ddd4] flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div>
+        <h2 class="text-sm sm:text-base font-extrabold text-[#23160e] flex items-center gap-2">
+          <i data-lucide="receipt" class="w-5 h-5 text-emerald-600"></i>
+          दुकान के सभी बिल व चालान (Order Transactions)
+        </h2>
+        <p class="text-xs text-[#8a7667]">नकद चुकता (PAID ✓) और उधार (DUES ⏳) चालान की सूची</p>
+      </div>
+
+      <!-- Filter Buttons -->
+      <div class="flex items-center gap-1.5 bg-[#faf7f3] p-1 rounded-xl border border-[#e8ddd4] text-xs">
+        <button class="order-filter-btn px-3 py-1 rounded-lg font-bold bg-white text-orange-700 shadow-xs" data-filter="all">
+          सभी (All)
+        </button>
+        <button class="order-filter-btn px-3 py-1 rounded-lg font-bold text-[#8a7667] hover:text-[#23160e]" data-filter="PAID">
+          PAID ✓ (चुकता)
+        </button>
+        <button class="order-filter-btn px-3 py-1 rounded-lg font-bold text-[#8a7667] hover:text-[#23160e]" data-filter="DUES">
+          DUES ⏳ (बाकी)
+        </button>
+      </div>
+    </div>
+
+    <!-- Orders Feed Container -->
+    <div class="minimal-card rounded-2xl p-5 bg-white border border-[#e8ddd4]">
+      <div id="orders-list" class="space-y-3">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- ========================================================= -->
+  <!-- MODAL 1: SHOP OWNER AUTH / REGISTRATION MODAL             -->
+  <!-- ========================================================= -->
+  <div id="auth-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div class="minimal-card rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
+      <div class="flex items-center justify-between pb-3 border-b border-[#f0e6dc] mb-4">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center text-orange-600 font-bold">
+            <i data-lucide="store" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-[#23160e]">Dukan Login / Switch Shop</h3>
+            <p class="text-[11px] text-[#8a7667]">Access your isolated shop bahi-khata</p>
+          </div>
+        </div>
+        <button id="close-auth-modal-btn" class="p-1.5 rounded-lg hover:bg-stone-100 text-stone-500">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Quick 1-Click Demo Shop Selectors -->
+      <div class="mb-4">
+        <label class="block text-[11px] font-semibold text-[#8a7667] uppercase mb-1.5">1-Click Test Demo Shops:</label>
+        <div class="grid grid-cols-2 gap-2">
+          <button class="demo-shop-pick-btn p-2.5 rounded-xl border border-orange-200 bg-orange-50/50 hover:bg-orange-100 text-left transition" data-id="SHOP-001" data-name="Gupta Wholesale Mart">
+            <b class="text-xs text-[#23160e] block">Gupta Wholesale</b>
+            <span class="text-[10px] text-orange-700">FMCG Sadar Bazar</span>
+          </button>
+          <button class="demo-shop-pick-btn p-2.5 rounded-xl border border-stone-200 bg-stone-50 hover:bg-stone-100 text-left transition" data-id="SHOP-002" data-name="Ramesh Kirana Store">
+            <b class="text-xs text-[#23160e] block">Ramesh Kirana</b>
+            <span class="text-[10px] text-stone-600">Retail Gandhi Nagar</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Or Register a New Shop Form -->
+      <div class="pt-3 border-t border-[#f0e6dc]">
+        <label class="block text-[11px] font-semibold text-[#8a7667] uppercase mb-2">Or Register New Shop (अपनी दुकान खोलें):</label>
+        <div class="space-y-2 text-xs">
+          <input type="text" id="reg-shop-name" placeholder="दुकान का नाम (e.g. Mahii grocery store)" class="w-full bg-[#faf7f3] border border-[#e8ddd4] rounded-xl px-3 py-2 text-[#23160e] focus:outline-none focus:border-orange-500">
+          <input type="text" id="reg-owner-name" placeholder="दुकानदार का नाम (e.g. Gautam)" class="w-full bg-[#faf7f3] border border-[#e8ddd4] rounded-xl px-3 py-2 text-[#23160e] focus:outline-none focus:border-orange-500">
+          <input type="text" id="reg-phone" placeholder="मोबाइल नंबर (+91 94305...)" class="w-full bg-[#faf7f3] border border-[#e8ddd4] rounded-xl px-3 py-2 text-[#23160e] focus:outline-none focus:border-orange-500 font-mono">
+          <button id="reg-submit-btn" class="w-full py-2.5 bg-orange-600 hover:bg-orange-500 text-white rounded-xl font-bold transition shadow-sm mt-1">
+            + नई दुकान बनाएं & शुरू करें (Register & Open)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ========================================================= -->
+  <!-- MODAL 2: CUSTOMER BAHI-KHATA PASSBOOK & DELETE MODAL      -->
+  <!-- ========================================================= -->
+  <div id="passbook-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div class="minimal-card rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative max-h-[90vh] flex flex-col">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3.5 border-b border-[#f0e6dc]">
+        <div class="flex items-center space-x-3">
+          <div class="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600">
+            <i data-lucide="book-marked" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 id="modal-cust-name" class="text-sm font-bold text-[#23160e]">Sharma General Store</h3>
+            <p id="modal-cust-phone" class="text-[11px] text-[#8a7667] font-mono">+91 98112 34567 • Laxmi Nagar, Delhi</p>
+          </div>
+        </div>
+        <button id="close-modal-btn" class="p-1.5 rounded-lg hover:bg-stone-100 text-stone-500">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Over 20k Block Alert inside Modal -->
+      <div id="modal-20k-alert" class="hidden my-3 p-3 rounded-xl bg-red-50 border border-red-300 text-red-800 text-xs flex items-center gap-2">
+        <i data-lucide="alert-octagon" class="w-4 h-4 text-red-600 flex-shrink-0"></i>
+        <div>
+          <b class="font-bold">🛑 Bakaya ₹20,000 Limit se Zyada Hai!</b>
+          <p class="text-[11px] text-red-700">Dukan Niyam: Samaan nahi denge jab tak purana hisaab jama na karein!</p>
+        </div>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="grid grid-cols-2 gap-3 my-3">
+        <div class="p-3 rounded-xl bg-[#faf7f3] border border-[#e8ddd4]">
+          <span class="text-[10px] text-[#8a7667] uppercase font-semibold">कुल बकाया (Outstanding Dues)</span>
+          <p id="modal-cust-balance" class="text-lg font-bold font-mono text-red-600 mt-0.5">₹18,400</p>
+        </div>
+        <div class="p-3 rounded-xl bg-[#faf7f3] border border-[#e8ddd4]">
+          <span class="text-[10px] text-[#8a7667] uppercase font-semibold">Credit Limit (अनुमति)</span>
+          <p id="modal-cust-limit" class="text-lg font-bold font-mono text-[#23160e] mt-0.5">₹50,000</p>
+        </div>
+      </div>
+
+      <!-- Quick Payment (Paisa Jama Karo) Form -->
+      <div class="p-3 rounded-xl bg-emerald-50/50 border border-emerald-200 mb-3">
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-xs font-bold text-emerald-900 flex items-center gap-1">
+            <i data-lucide="banknote" class="w-3.5 h-3.5 text-emerald-600"></i>
+            पैसे जमा करें (Cash Payment Entry)
+          </span>
+          <span class="text-[10px] text-emerald-700">Dues कम करें</span>
+        </div>
+        <div class="flex gap-2">
+          <input type="number" id="quick-payment-amount" placeholder="Amount (e.g. 5000)" class="flex-1 bg-white border border-emerald-300 rounded-xl px-3 py-1.5 text-xs text-[#23160e] font-mono focus:outline-none focus:border-emerald-500">
+          <button id="quick-payment-btn" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-sm">
+            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+            जमा करें
+          </button>
+        </div>
+      </div>
+
+      <!-- Transaction History Table -->
+      <div class="flex-1 overflow-y-auto pr-1">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-[#8a7667] mb-2 flex items-center gap-1">
+          <i data-lucide="history" class="w-3.5 h-3.5"></i>
+          पिछला हिसाब-किताब (Passbook Statement)
+        </h4>
+        <div id="modal-ledger-list" class="space-y-1.5 text-xs">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Delete Customer & Erase Khata Button -->
+      <div class="pt-3 border-t border-[#f0e6dc] mt-2">
+        <button id="modal-delete-cust-btn" class="w-full py-2 rounded-xl bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 font-bold text-xs flex items-center justify-center gap-1.5 transition">
+          <i data-lucide="trash-2" class="w-4 h-4"></i>
+          इस ग्राहक का खाता व सभी रिपोर्ट्स हमेशा के लिए मिटाएं (Delete / Erase Khata)
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ========================================================= -->
+  <!-- MODAL 3: ADD NEW CUSTOMER MODAL (NAYA GRAHAK JODEIN)      -->
+  <!-- ========================================================= -->
+  <div id="add-customer-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div class="minimal-card rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
+      <div class="flex items-center justify-between pb-3 border-b border-[#f0e6dc] mb-4">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center text-orange-600 font-bold">
+            <i data-lucide="user-plus" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-[#23160e]">नया ग्राहक जोड़ें (Add Customer)</h3>
+            <p class="text-[11px] text-[#8a7667]">बही-खाते में नया खाता खोलें</p>
+          </div>
+        </div>
+        <button id="close-add-cust-modal-btn" class="p-1.5 rounded-lg hover:bg-stone-100 text-stone-500">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-[11px] font-semibold text-[#8a7667] mb-1">ग्राहक / दुकान का नाम:</label>
+          <input type="text" id="new-cust-name" placeholder="e.g. Raju Chaiwala या Sharma General Store" class="w-full bg-[#faf7f3] border border-[#e8ddd4] rounded-xl px-3 py-2 text-[#23160e] focus:outline-none focus:border-orange-500 font-medium">
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-[#8a7667] mb-1">मोबाइल नंबर (WhatsApp बिल के लिए):</label>
+          <input type="text" id="new-cust-phone" placeholder="+91 98..." class="w-full bg-[#faf7f3] border border-[#e8ddd4] rounded-xl px-3 py-2 text-[#23160e] focus:outline-none focus:border-orange-500 font-mono">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[11px] font-semibold text-[#8a7667] mb-1">पुराना बकाया (यदि कोई हो):</label>
+            <input type="number" id="new-cust-initial-dues" placeholder="₹0" class="w-full bg-[#faf7f3] border border-[#e8ddd4] rounded-xl px-3 py-2 text-[#23160e] focus:outline-none focus:border-orange-500 font-mono">
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-[#8a7667] mb-1">Credit Limit (₹):</label>
+            <input type="number" id="new-cust-limit" value="20000" class="w-full bg-[#faf7f3] border border-[#e8ddd4] rounded-xl px-3 py-2 text-[#23160e] focus:outline-none focus:border-orange-500 font-mono">
+          </div>
+        </div>
+        <button id="save-new-cust-btn" class="w-full py-2.5 bg-orange-600 hover:bg-orange-500 text-white rounded-xl font-bold transition shadow-sm mt-2 flex items-center justify-center gap-1.5">
+          <i data-lucide="check" class="w-4 h-4"></i>
+          खाता खोलें & Save करें
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- 4. MOBILE BOTTOM NAVIGATION BAR (Visible on < 768px screens)-->
+  <!-- ========================================================= -->
+  <div class="md:hidden fixed bottom-0 left-0 right-0 z-50 mobile-bottom-nav bg-white/95 backdrop-blur-lg border-t border-[#e8ddd4] px-1.5 py-1 flex items-center justify-around shadow-lg">
+    <button class="nav-tab mobile-nav-tab flex flex-col items-center justify-center py-1.5 px-3 text-[10px] font-bold active-tab" data-page="page-home">
+      <i data-lucide="home" class="w-5 h-5 mb-0.5"></i>
+      <span>होम</span>
+    </button>
+    <button class="nav-tab mobile-nav-tab flex flex-col items-center justify-center py-1.5 px-3 text-[10px] font-bold inactive-tab" data-page="page-voice">
+      <i data-lucide="mic" class="w-5 h-5 mb-0.5"></i>
+      <span>बिलिंग</span>
+    </button>
+    <button class="nav-tab mobile-nav-tab flex flex-col items-center justify-center py-1.5 px-3 text-[10px] font-bold inactive-tab" data-page="page-khata">
+      <i data-lucide="book-open" class="w-5 h-5 mb-0.5"></i>
+      <span>खाता</span>
+    </button>
+    <button class="nav-tab mobile-nav-tab flex flex-col items-center justify-center py-1.5 px-3 text-[10px] font-bold inactive-tab" data-page="page-inventory">
+      <i data-lucide="package" class="w-5 h-5 mb-0.5"></i>
+      <span>स्टॉक</span>
+    </button>
+    <button class="nav-tab mobile-nav-tab flex flex-col items-center justify-center py-1.5 px-3 text-[10px] font-bold inactive-tab" data-page="page-orders">
+      <i data-lucide="receipt" class="w-5 h-5 mb-0.5"></i>
+      <span>बिल</span>
+    </button>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
