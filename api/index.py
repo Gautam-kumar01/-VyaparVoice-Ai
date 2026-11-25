@@ -1,5 +1,6 @@
 import sys
 import os
+import urllib.parse
 
 # Add backend directory to sys.path so modules can import database, agent_engine, etc.
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -12,39 +13,25 @@ from app import app
 class VercelPathFixMiddleware:
     """
     WSGI middleware to fix PATH_INFO and QUERY_STRING when deployed on Vercel.
-    When Vercel rewrites requests from /api/(.*) to /api/index.py, WSGI PATH_INFO
-    is often set to '/api/index.py' or '/index.py' instead of the true requested path.
-    This middleware extracts the true path from REQUEST_URI / RAW_URI / HTTP_X_MATCHED_PATH.
+    Extracts the true path from __route__ query parameter passed by vercel.json rewrite.
     """
     def __init__(self, wsgi_app):
         self.wsgi_app = wsgi_app
 
     def __call__(self, environ, start_response):
-        path_info = environ.get("PATH_INFO", "")
-        # If PATH_INFO is pointing to the handler script itself
-        if (
-            not path_info or 
-            path_info in ("/api/index.py", "/api/index", "/index.py", "/api/", "/api", "") or
-            path_info.endswith("/index.py")
-        ):
-            candidate = (
-                environ.get("REQUEST_URI") or
-                environ.get("RAW_URI") or
-                environ.get("HTTP_X_MATCHED_PATH") or
-                environ.get("HTTP_X_FORWARDED_URI") or
-                ""
-            )
-            if candidate:
-                if "?" in candidate:
-                    parts = candidate.split("?", 1)
-                    clean_path = parts[0]
-                    if len(parts) > 1 and not environ.get("QUERY_STRING"):
-                        environ["QUERY_STRING"] = parts[1]
-                else:
-                    clean_path = candidate
-
-                if clean_path.startswith("/"):
-                    environ["PATH_INFO"] = clean_path
+        query_string = environ.get("QUERY_STRING", "")
+        if "__route__" in query_string:
+            params = urllib.parse.parse_qs(query_string, keep_blank_values=True)
+            if "__route__" in params:
+                route_path = params.pop("__route__")[0]
+                if route_path and route_path.startswith("/"):
+                    environ["PATH_INFO"] = route_path
+                # Rebuild remaining query string without __route__
+                clean_pairs = []
+                for k, vals in params.items():
+                    for v in vals:
+                        clean_pairs.append((k, v))
+                environ["QUERY_STRING"] = urllib.parse.urlencode(clean_pairs)
 
         return self.wsgi_app(environ, start_response)
 

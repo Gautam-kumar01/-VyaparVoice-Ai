@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/index.py"
+      "destination": "/api/index.py?__route__=/api/$1"
     },
     {
       "source": "/assets/(.*)",
@@ -18,12 +18,8 @@
       "destination": "/frontend/app.js"
     },
     {
-      "source": "/",
-      "destination": "/frontend/index.html"
-    },
-    {
       "source": "/(.*)",
-      "destination": "/api/index.py"
+      "destination": "/frontend/index.html"
     }
   ]
 }
