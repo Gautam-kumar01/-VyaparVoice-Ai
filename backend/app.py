@@ -51,6 +51,7 @@ def index():
 # -------------------------------------------------------------
 
 @app.route("/api/auth/login", methods=["POST"])
+@app.route("/auth/login", methods=["POST"])
 def auth_login():
     """Authenticates a shop owner by email/phone and password."""
     data = request.get_json() or {}
@@ -73,6 +74,7 @@ def auth_login():
     })
 
 @app.route("/api/auth/register", methods=["POST"])
+@app.route("/auth/register", methods=["POST"])
 def auth_register():
     """Registers a new shopkeeper account and creates their private dashboard."""
     data = request.get_json() or {}
@@ -99,6 +101,7 @@ def auth_register():
     return jsonify(res), 400
 
 @app.route("/api/auth/shops", methods=["GET"])
+@app.route("/auth/shops", methods=["GET"])
 def list_demo_shops():
     """Returns available shops for easy 1-click demo switching."""
     shops = get_all_shops()
@@ -109,6 +112,7 @@ def list_demo_shops():
 # -------------------------------------------------------------
 
 @app.route("/api/state", methods=["GET"])
+@app.route("/state", methods=["GET"])
 def get_state():
     """Returns real-time inventory, bahi-khata ledgers, and orders for the shop."""
     shop_id = request.args.get("shop_id", "SHOP-001")
@@ -119,6 +123,7 @@ def get_state():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route("/api/customer-history/<customer_id>", methods=["GET"])
+@app.route("/customer-history/<customer_id>", methods=["GET"])
 def customer_history(customer_id):
     """Returns passbook statement, items taken, and PAID/DUES status."""
     shop_id = request.args.get("shop_id", "SHOP-001")
@@ -131,6 +136,7 @@ def customer_history(customer_id):
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route("/api/record-payment", methods=["POST"])
+@app.route("/record-payment", methods=["POST"])
 def record_payment():
     """Records customer payment entry."""
     data = request.get_json() or {}
@@ -147,6 +153,7 @@ def record_payment():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route("/api/customer/delete", methods=["POST"])
+@app.route("/customer/delete", methods=["POST"])
 def delete_customer_endpoint():
     """Permanently deletes/erases a customer and their records for the shop."""
     data = request.get_json() or {}
@@ -162,6 +169,7 @@ def delete_customer_endpoint():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route("/api/customer/add", methods=["POST"])
+@app.route("/customer/add", methods=["POST"])
 def add_customer_endpoint():
     """Manually adds a new customer profile and ledger."""
     data = request.get_json() or {}
@@ -183,6 +191,7 @@ def add_customer_endpoint():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route("/api/execute-voice", methods=["POST"])
+@app.route("/execute-voice", methods=["POST"])
 def execute_voice():
     """
     Core agentic execution endpoint.
@@ -207,6 +216,7 @@ def execute_voice():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route("/api/hitl-decision", methods=["POST"])
+@app.route("/hitl-decision", methods=["POST"])
 def hitl_decision():
     """Approves or rejects a transaction requiring human-in-the-loop authorization."""
     data = request.get_json() or {}
@@ -226,6 +236,7 @@ def hitl_decision():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route("/api/rollback", methods=["POST"])
+@app.route("/rollback", methods=["POST"])
 def rollback():
     """Reverses the last committed transaction for this shop."""
     data = request.get_json() or {}
@@ -242,6 +253,7 @@ def rollback():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route("/api/reset", methods=["POST"])
+@app.route("/reset", methods=["POST"])
 def reset():
     """Resets database to clean initial benchmark state."""
     data = request.get_json() or {}
@@ -257,10 +269,22 @@ def reset():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
-@app.route("/<path:path>")
+@app.route("/api/health", methods=["GET"])
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({"status": "ok", "app": "VyaparVoice AI"})
+
+@app.route("/<path:path>", methods=["GET", "POST", "OPTIONS"])
 def static_files(path):
-    if path.startswith("api/"):
-        return jsonify({"status": "error", "message": "API endpoint not found"}), 404
+    if (
+        path.startswith("api/") or 
+        path.startswith("execute-voice") or 
+        path.startswith("state") or 
+        path.startswith("auth/") or 
+        path.startswith("customer") or
+        path.startswith("record-payment")
+    ):
+        return jsonify({"status": "error", "message": f"API endpoint not found: /{path}"}), 404
     file_path = os.path.join(FRONTEND_DIR, path)
     if os.path.exists(file_path) and os.path.isfile(file_path):
         return send_from_directory(FRONTEND_DIR, path)

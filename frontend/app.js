@@ -495,7 +495,16 @@ document.addEventListener("DOMContentLoaded", () => {
         body: JSON.stringify({ transcript: text, shop_id: currentShopId })
       });
 
-      const data = await res.json();
+      let data;
+      const cType = res.headers.get("content-type") || "";
+      if (cType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        const rawText = await res.text();
+        console.error("Non-JSON Server response:", res.status, rawText);
+        throw new Error(`सर्वर से अमान्य उत्तर प्राप्त हुआ (${res.status})। कृपया पुनः प्रयास करें।`);
+      }
+
       const elapsedMs = Math.round(performance.now() - startMs);
 
       if (data.status === "success") {
@@ -537,13 +546,16 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         if (transactionConfirmationBanner) transactionConfirmationBanner.classList.add("hidden");
         spokenBubble.textContent = `Error: ${data.message}`;
-        traceContainer.innerHTML = `<div class="p-3 rounded-xl bg-red-50 border border-red-300 text-red-700 text-xs">Error: ${data.message}</div>`;
+        traceContainer.innerHTML = `<div class="p-3 rounded-xl bg-red-50 border border-red-300 text-red-700 text-xs font-semibold">Error: ${data.message}</div>`;
         setVoiceState("ready", "⚠️ कुछ गड़बड़ हुई, दोबारा बोलें");
       }
     } catch (err) {
       if (transactionConfirmationBanner) transactionConfirmationBanner.classList.add("hidden");
-      spokenBubble.textContent = "Server se connect nahi ho saka.";
-      traceContainer.innerHTML = `<div class="p-3 rounded-xl bg-red-50 border border-red-300 text-red-700 text-xs">${err.message}</div>`;
+      const userMsg = err.message.includes("Failed to fetch") 
+        ? "इंटरनेट या सर्वर से कनेक्शन नहीं हो सका।"
+        : err.message;
+      spokenBubble.textContent = "सर्वर से कनेक्ट नहीं हो सका।";
+      traceContainer.innerHTML = `<div class="p-3 rounded-xl bg-red-50 border border-red-300 text-red-700 text-xs font-semibold">⚠️ ${userMsg}</div>`;
       setVoiceState("ready", "⚠️ कनेक्शन में समस्या आई");
     }
   }
