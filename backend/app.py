@@ -274,6 +274,46 @@ def reset():
 def health():
     return jsonify({"status": "ok", "app": "VyaparVoice AI"})
 
+@app.route("/api/index.py", methods=["GET", "POST", "OPTIONS"])
+@app.route("/api/index", methods=["GET", "POST", "OPTIONS"])
+@app.route("/api/", methods=["GET", "POST", "OPTIONS"])
+@app.route("/api", methods=["GET", "POST", "OPTIONS"])
+def vercel_entrypoint_dispatcher():
+    """
+    Fallback dispatcher when Vercel rewrites requests to /api/index.py
+    without preserving the subpath. Intelligently routes by payload or query params.
+    """
+    if request.method == "OPTIONS":
+        return jsonify({"status": "ok"}), 200
+
+    if request.method == "POST":
+        data = request.get_json(silent=True) or {}
+        if "transcript" in data:
+            return execute_voice()
+        if "amount" in data and "customer_id" in data:
+            return record_payment()
+        if "initial_dues" in data or ("name" in data and "shop_id" in data):
+            return add_customer_endpoint()
+        if "email_or_phone" in data:
+            return auth_login()
+        if "shop_name" in data and "owner_name" in data:
+            return auth_register()
+        if "approved" in data:
+            return hitl_decision()
+        return execute_voice()
+
+    # GET requests
+    shop_id = request.args.get("shop_id")
+    if shop_id:
+        return get_state()
+    cust_id = request.args.get("customer_id")
+    if cust_id:
+        return customer_history(cust_id)
+    if "shops" in request.args or request.path.endswith("shops"):
+        return list_demo_shops()
+
+    return jsonify({"status": "ok", "app": "VyaparVoice AI", "message": "Vercel API Dispatcher Active"})
+
 @app.route("/<path:path>", methods=["GET", "POST", "OPTIONS"])
 def static_files(path):
     if (
@@ -284,6 +324,8 @@ def static_files(path):
         path.startswith("customer") or
         path.startswith("record-payment")
     ):
+        if "index.py" in path or "index" in path:
+            return vercel_entrypoint_dispatcher()
         return jsonify({"status": "error", "message": f"API endpoint not found: /{path}"}), 404
     file_path = os.path.join(FRONTEND_DIR, path)
     if os.path.exists(file_path) and os.path.isfile(file_path):
