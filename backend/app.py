@@ -284,7 +284,11 @@ def static_files(path):
         path.startswith("customer") or
         path.startswith("record-payment")
     ):
-        return jsonify({"status": "error", "message": f"API endpoint not found: /{path}"}), 404
+        return jsonify({
+            "status": "error",
+            "message": f"API endpoint not found: /{path}",
+            "environ_keys": {k: str(v) for k, v in request.environ.items() if "URI" in k or "PATH" in k or "ROUTE" in k or "VERCEL" in k or "URL" in k or "MATCH" in k or "HEADER" in k}
+        }), 404
     file_path = os.path.join(FRONTEND_DIR, path)
     if os.path.exists(file_path) and os.path.isfile(file_path):
         return send_from_directory(FRONTEND_DIR, path)
