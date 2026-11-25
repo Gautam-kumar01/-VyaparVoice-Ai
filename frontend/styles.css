@@ -249,3 +249,83 @@ body {
     padding-bottom: 5.5rem;
   }
 }
+
+/* ============================================================
+   Workflow States: Completed, Pending, Failed, Needs Clarification
+   ============================================================ */
+.workflow-state-completed {
+  background-color: #f0fdf4;
+  border: 1px solid #86efac;
+  color: #14532d;
+}
+.workflow-state-pending {
+  background-color: #fffbeb;
+  border: 1px solid #fcd34d;
+  color: #78350f;
+}
+.workflow-state-failed {
+  background-color: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #7f1d1d;
+}
+.workflow-state-clarify {
+  background-color: #fff7ed;
+  border: 1px solid #fdba74;
+  color: #7c2d12;
+}
+
+/* Clean Timeline Connector */
+.timeline-item {
+  position: relative;
+  padding-left: 2rem;
+}
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: 0.75rem;
+  top: 1.5rem;
+  bottom: -0.5rem;
+  width: 2px;
+  background-color: #e8ddd4;
+}
+.timeline-item:last-child::before {
+  display: none;
+}
+.timeline-dot {
+  position: absolute;
+  left: 0;
+  top: 0.25rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+/* Glowing Listening Ring */
+@keyframes ringPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 18px rgba(234, 88, 12, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(234, 88, 12, 0);
+  }
+}
+.listening-glow {
+  animation: ringPulse 1.6s infinite;
+}
+
+/* Empty State Card */
+.empty-state-box {
+  background-color: #faf7f3;
+  border: 1.5px dashed #e2d1c0;
+  border-radius: 1.25rem;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+}

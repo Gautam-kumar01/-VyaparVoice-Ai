@@ -60,6 +60,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const micPulse = document.getElementById("mic-pulse");
   const micCaption = document.getElementById("mic-caption");
   const micOverlay = document.getElementById("mic-status-overlay");
+  const voiceStateIndicator = document.getElementById("voice-state-indicator");
+  const voiceStateText = document.getElementById("voice-state-text");
+  const liveTranscriptBox = document.getElementById("live-transcript-box");
+  const transcriptText = document.getElementById("transcript-text");
+  const transcriptTimestamp = document.getElementById("transcript-timestamp");
+  const transactionConfirmationBanner = document.getElementById("transaction-confirmation-banner");
+  const confirmationDetails = document.getElementById("confirmation-details");
   const canvas = document.getElementById("waveform-canvas");
   const latencyDisplay = document.getElementById("latency-display");
   const spokenBubble = document.getElementById("spoken-response-bubble");
@@ -274,16 +281,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
     utterance.onstart = () => {
       isSpeaking = true;
+      setVoiceState("speaking");
       agentVoiceStatus.innerHTML = `<span class="w-2 h-2 rounded-full bg-orange-500 animate-ping"></span> Bol raha hai...`;
     };
 
     utterance.onend = () => {
       isSpeaking = false;
+      setVoiceState("ready");
       agentVoiceStatus.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Audio Ready`;
     };
 
     utterance.onerror = () => {
       isSpeaking = false;
+      setVoiceState("ready");
       agentVoiceStatus.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Audio Ready`;
     };
 
@@ -302,6 +312,75 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!speechEnabled) window.speechSynthesis.cancel();
   });
 
+  // --- Dynamic 4-State Voice HUD Controller ---
+  // States: ready, listening, processing, speaking
+  function setVoiceState(state, customText) {
+    if (!voiceStateIndicator || !voiceStateText) return;
+
+    if (state === "ready") {
+      voiceStateIndicator.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100 border border-stone-300 text-stone-700 text-[11px] font-bold self-start sm:self-auto";
+      voiceStateText.textContent = customText || "⚪ तैयार: माइक दबाएं";
+      if (micCaption) {
+        micCaption.textContent = "Tap to Speak (माइक दबाएं)";
+        micCaption.className = "text-xs sm:text-sm font-extrabold text-[#23160e]";
+      }
+      if (micBtn) {
+        micBtn.classList.remove("listening-glow", "mic-active-pulse");
+      }
+      if (micPulse) {
+        micPulse.classList.add("hidden");
+      }
+      if (micOverlay) {
+        micOverlay.classList.remove("hidden");
+      }
+    } else if (state === "listening") {
+      voiceStateIndicator.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-100 border border-orange-300 text-orange-800 text-[11px] font-bold self-start sm:self-auto animate-pulse";
+      voiceStateText.textContent = customText || "🔴 सुन रहा हूँ... बोलिए (Listening)";
+      if (micCaption) {
+        micCaption.textContent = "🔴 सुन रहा हूँ... बोलिए";
+        micCaption.className = "text-xs sm:text-sm font-extrabold text-orange-600";
+      }
+      if (micBtn) {
+        micBtn.classList.add("listening-glow", "mic-active-pulse");
+      }
+      if (micPulse) {
+        micPulse.classList.remove("hidden");
+      }
+      if (micOverlay) {
+        micOverlay.classList.add("hidden");
+      }
+    } else if (state === "processing") {
+      voiceStateIndicator.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-[11px] font-bold self-start sm:self-auto animate-pulse";
+      voiceStateText.textContent = customText || "⚙️ AI समझ रहा है और हिसाब चेक कर रहा है...";
+      if (micCaption) {
+        micCaption.textContent = "⚙️ AI जांच कर रहा है...";
+        micCaption.className = "text-xs sm:text-sm font-extrabold text-amber-700";
+      }
+      if (micBtn) {
+        micBtn.classList.remove("listening-glow", "mic-active-pulse");
+      }
+      if (micPulse) {
+        micPulse.classList.add("hidden");
+      }
+      if (micOverlay) {
+        micOverlay.classList.add("hidden");
+      }
+    } else if (state === "speaking") {
+      voiceStateIndicator.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-900 text-[11px] font-bold self-start sm:self-auto";
+      voiceStateText.textContent = customText || "🔊 AI बोल रहा है (Speaking)...";
+      if (micCaption) {
+        micCaption.textContent = "🔊 AI बोल रहा है...";
+        micCaption.className = "text-xs sm:text-sm font-extrabold text-emerald-700";
+      }
+      if (micBtn) {
+        micBtn.classList.remove("listening-glow", "mic-active-pulse");
+      }
+      if (micPulse) {
+        micPulse.classList.add("hidden");
+      }
+    }
+  }
+
   // --- 2. Web Speech Recognition (ASR) ---
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -313,32 +392,44 @@ document.addEventListener("DOMContentLoaded", () => {
 
     recognition.onstart = () => {
       isListening = true;
-      micPulse.classList.remove("hidden");
-      micBtn.classList.add("mic-active-pulse");
-      micCaption.textContent = "Listening (Sun raha hai)...";
-      micCaption.className = "text-xs font-bold text-orange-600";
-      micOverlay.classList.add("hidden");
+      setVoiceState("listening");
+      if (transcriptText) {
+        transcriptText.textContent = "सुन रहा हूँ... अपनी दुकान की बात बोलिए...";
+      }
+      if (transcriptTimestamp) {
+        transcriptTimestamp.textContent = "Live Listening...";
+      }
       playChime(440, 880);
     };
 
     recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
       manualTextInput.value = transcript;
+      if (transcriptText) {
+        transcriptText.textContent = `"${transcript}"`;
+      }
+      if (transcriptTimestamp) {
+        transcriptTimestamp.textContent = new Date().toLocaleTimeString('en-IN');
+      }
       executeVoiceInstruction(transcript);
     };
 
     recognition.onerror = () => {
       stopListening();
+      setVoiceState("ready");
     };
 
     recognition.onend = () => {
       stopListening();
+      if (!isSpeaking) {
+        setVoiceState("ready");
+      }
     };
   }
 
   function startListening() {
     if (!recognition) {
-      alert("Aapka browser Speech Recognition support nahi karta. Chrome use karein ya command type karein.");
+      alert("Aapka browser Speech Recognition support nahi karta. Chrome use karein ya niche command type karein.");
       return;
     }
     try {
@@ -351,9 +442,9 @@ document.addEventListener("DOMContentLoaded", () => {
   function stopListening() {
     isListening = false;
     micPulse.classList.add("hidden");
-    micBtn.classList.remove("mic-active-pulse");
+    micBtn.classList.remove("mic-active-pulse", "listening-glow");
     micCaption.textContent = "Tap to Speak (माइक दबाएं)";
-    micCaption.className = "text-xs font-bold text-[#23160e]";
+    micCaption.className = "text-xs sm:text-sm font-extrabold text-[#23160e]";
     micOverlay.classList.remove("hidden");
   }
 
@@ -361,6 +452,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (isListening) {
       if (recognition) recognition.stop();
       stopListening();
+      setVoiceState("ready");
     } else {
       startListening();
     }
@@ -373,11 +465,22 @@ document.addEventListener("DOMContentLoaded", () => {
     // Switch to voice tab automatically if user was on home
     switchPage("page-voice");
 
+    if (transcriptText) {
+      transcriptText.textContent = `"${text}"`;
+    }
+    if (transcriptTimestamp) {
+      transcriptTimestamp.textContent = new Date().toLocaleTimeString('en-IN');
+    }
+    if (transactionConfirmationBanner) {
+      transactionConfirmationBanner.classList.add("hidden");
+    }
+
+    setVoiceState("processing");
     playChime(660, 990);
     traceContainer.innerHTML = `
-      <div class="flex items-center space-x-2 text-xs text-orange-600 p-2 bg-orange-50 rounded-xl animate-pulse">
+      <div class="flex items-center space-x-2 text-xs text-orange-600 p-3 bg-orange-50 rounded-xl border border-orange-200 animate-pulse">
         <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
-        <span>Gemini AI agent processing spoken intent across tools...</span>
+        <span>AI एजेंट ग्राहक पहचान, स्टॉक और ₹20,000 सुरक्षा सीमा की जांच कर रहा है...</span>
       </div>
     `;
     stepCountBadge.textContent = "Processing...";
@@ -413,9 +516,18 @@ document.addEventListener("DOMContentLoaded", () => {
           currentHitlPayload = result.pending_payload;
           hitlDescription.textContent = result.hitl_reason;
           hitlBanner.classList.remove("hidden");
+          if (transactionConfirmationBanner) transactionConfirmationBanner.classList.add("hidden");
           playChime(300, 200, 0.25);
         } else {
           hitlBanner.classList.add("hidden");
+          if (transactionConfirmationBanner) {
+            transactionConfirmationBanner.classList.remove("hidden");
+            if (confirmationDetails) {
+              confirmationDetails.textContent = result.spoken_response
+                ? result.spoken_response.replace(/[#*`_~]/g, '').trim()
+                : "स्टॉक कट गया • बिल बन गया • WhatsApp रसीद भेजी गई";
+            }
+          }
         }
 
         if (data.state) {
@@ -423,64 +535,173 @@ document.addEventListener("DOMContentLoaded", () => {
           renderDashboardState(data.state);
         }
       } else {
+        if (transactionConfirmationBanner) transactionConfirmationBanner.classList.add("hidden");
         spokenBubble.textContent = `Error: ${data.message}`;
-        traceContainer.innerHTML = `<div class="p-3 rounded-xl bg-red-50 text-red-700 text-xs">Error: ${data.message}</div>`;
+        traceContainer.innerHTML = `<div class="p-3 rounded-xl bg-red-50 border border-red-300 text-red-700 text-xs">Error: ${data.message}</div>`;
+        setVoiceState("ready", "⚠️ कुछ गड़बड़ हुई, दोबारा बोलें");
       }
     } catch (err) {
+      if (transactionConfirmationBanner) transactionConfirmationBanner.classList.add("hidden");
       spokenBubble.textContent = "Server se connect nahi ho saka.";
-      traceContainer.innerHTML = `<div class="p-3 rounded-xl bg-red-50 text-red-700 text-xs">${err.message}</div>`;
+      traceContainer.innerHTML = `<div class="p-3 rounded-xl bg-red-50 border border-red-300 text-red-700 text-xs">${err.message}</div>`;
+      setVoiceState("ready", "⚠️ कनेक्शन में समस्या आई");
     }
   }
 
-  // --- 4. Render Agentic Trace Steps ---
+  // --- 4. Render Agentic Trace Steps (4 Distinct Visual States) ---
   function renderTraceSteps(steps) {
     stepCountBadge.textContent = `${steps.length} Steps`;
     if (steps.length === 0) {
-      traceContainer.innerHTML = `<p class="text-xs text-[#8a7667]">No tool executions.</p>`;
+      traceContainer.innerHTML = `
+        <div class="empty-state-box py-6 text-xs text-[#8a7667]">
+          <i data-lucide="info" class="w-6 h-6 mx-auto mb-1 text-orange-600"></i>
+          <p class="font-bold text-[#23160e]">माइक दबाकर बोलिए</p>
+          <p class="text-[11px] text-[#8a7667] mt-0.5">जैसे ही आप बोलेंगे, AI ग्राहक पहचानेगा, स्टॉक जाँचेगा, और चालान तैयार करेगा।</p>
+        </div>
+      `;
+      if (window.lucide) window.lucide.createIcons();
       return;
     }
 
     traceContainer.innerHTML = steps.map((s, idx) => {
-      let icon = "activity";
-      let iconColor = "text-orange-600";
-      let borderClass = "border-[#e8ddd4] bg-[#faf7f3]";
+      const stepNum = idx + 1;
+      let icon = "check-circle-2";
+      let stateClass = "workflow-state-completed";
+      let dotBg = "bg-emerald-600 text-white";
+      let dotSymbol = `${stepNum}`;
+      let statusBadge = `<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">✓ पूरा हुआ</span>`;
 
-      if (s.type === "intent") {
-        icon = "brain";
-        iconColor = "text-amber-600";
-      } else if (s.type === "tool") {
-        icon = "cpu";
-        iconColor = "text-orange-600";
-      } else if (s.type === "policy") {
-        icon = "shield-check";
-        iconColor = "text-emerald-700";
-      } else if (s.type === "interruption") {
-        icon = "zap";
-        iconColor = "text-amber-600";
-        borderClass = "border-amber-300 bg-amber-50/40";
+      // 1. Failed / Blocked (Red 🛑)
+      if (
+        s.status === "warning" || 
+        s.status === "failed" || 
+        (s.title && (s.title.toLowerCase().includes("block") || s.title.toLowerCase().includes("reject") || s.title.toLowerCase().includes("limit"))) ||
+        (s.detail && (s.detail.includes(">20000") || s.detail.toLowerCase().includes("limit exceeded") || s.detail.toLowerCase().includes("insufficient")))
+      ) {
+        icon = "alert-octagon";
+        stateClass = "workflow-state-failed";
+        dotBg = "bg-red-600 text-white";
+        dotSymbol = "🛑";
+        statusBadge = `<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-red-100 text-red-800 border border-red-300">🛑 रोक दिया</span>`;
       }
-
-      if (s.status === "warning") {
-        icon = "alert-triangle";
-        iconColor = "text-red-600";
-        borderClass = "border-red-300 bg-red-50/50";
+      // 2. Pending Approval (Amber ⏳)
+      else if (
+        s.type === "hitl" || 
+        s.status === "pending" || 
+        (s.title && (s.title.toLowerCase().includes("approval") || s.title.toLowerCase().includes("manzoori") || s.title.toLowerCase().includes("supervisor")))
+      ) {
+        icon = "clock";
+        stateClass = "workflow-state-pending";
+        dotBg = "bg-amber-600 text-white";
+        dotSymbol = "⏳";
+        statusBadge = `<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-300">⏳ मंज़ूरी चाहिए</span>`;
+      }
+      // 3. Needs Clarification / Interruption (Orange ❓)
+      else if (
+        s.type === "clarification" || 
+        s.type === "interruption" || 
+        (s.title && (s.title.toLowerCase().includes("clarif") || s.title.toLowerCase().includes("ruko") || s.title.toLowerCase().includes("substitut")))
+      ) {
+        icon = "help-circle";
+        stateClass = "workflow-state-clarify";
+        dotBg = "bg-orange-600 text-white";
+        dotSymbol = "❓";
+        statusBadge = `<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-orange-100 text-orange-800 border border-orange-300">❓ स्पष्ट करें</span>`;
+      }
+      // 4. Completed (Green ✓)
+      else {
+        if (s.type === "intent") icon = "brain";
+        else if (s.type === "tool") icon = "check-circle-2";
+        else if (s.type === "policy") icon = "shield-check";
       }
 
       return `
-        <div class="animate-step p-3 rounded-xl border ${borderClass} text-xs transition">
-          <div class="flex items-center justify-between mb-1">
-            <span class="font-bold text-[#23160e] flex items-center gap-1.5">
-              <i data-lucide="${icon}" class="w-3.5 h-3.5 ${iconColor}"></i>
-              ${s.title}
-            </span>
-            <span class="text-[10px] font-mono text-[#8a7667]">${s.timestamp || ''}</span>
+        <div class="timeline-item animate-step mb-2.5">
+          <div class="timeline-dot ${dotBg} shadow-xs">${dotSymbol}</div>
+          <div class="p-3 rounded-xl border ${stateClass} text-xs transition shadow-xs">
+            <div class="flex items-center justify-between mb-1 gap-2">
+              <span class="font-bold flex items-center gap-1.5">
+                <i data-lucide="${icon}" class="w-3.5 h-3.5 flex-shrink-0"></i>
+                <span>${s.title}</span>
+              </span>
+              <div class="flex items-center gap-1.5 flex-shrink-0">
+                ${statusBadge}
+                <span class="text-[9px] font-mono text-[#8a7667]">${s.timestamp || ''}</span>
+              </div>
+            </div>
+            <p class="text-[11px] leading-relaxed pl-5 font-mono opacity-90">${s.detail}</p>
           </div>
-          <p class="text-[11px] text-[#49382c] pl-5 leading-relaxed font-mono">${s.detail}</p>
         </div>
       `;
     }).join('');
 
     if (window.lucide) window.lucide.createIcons();
+  }
+
+  // HITL Decision Listeners (₹20,000 Safety Gate Action)
+  if (hitlApproveBtn) {
+    hitlApproveBtn.addEventListener("click", async () => {
+      try {
+        const res = await fetch("/api/hitl-decision", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            approved: true,
+            note: "Owner Approved (>₹20k)",
+            shop_id: currentShopId
+          })
+        });
+        const data = await res.json();
+        if (data.status === "success") {
+          playChime(523, 1046);
+          hitlBanner.classList.add("hidden");
+          const msg = data.result.message || "मालिक की मंज़ूरी से बिल पास हो गया है!";
+          spokenBubble.textContent = msg;
+          speakResponse(msg);
+          if (transactionConfirmationBanner) {
+            transactionConfirmationBanner.classList.remove("hidden");
+            if (confirmationDetails) {
+              confirmationDetails.textContent = `मालिक की विशेष मंज़ूरी: ${msg}`;
+            }
+          }
+          if (data.state) renderDashboardState(data.state);
+        } else {
+          alert(data.message || "Approve karne me error aaya");
+        }
+      } catch (e) {
+        alert("Error: " + e.message);
+      }
+    });
+  }
+
+  if (hitlRejectBtn) {
+    hitlRejectBtn.addEventListener("click", async () => {
+      try {
+        const res = await fetch("/api/hitl-decision", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            approved: false,
+            note: "Owner Rejected (>₹20k)",
+            shop_id: currentShopId
+          })
+        });
+        const data = await res.json();
+        if (data.status === "success") {
+          playChime(300, 150);
+          hitlBanner.classList.add("hidden");
+          const msg = data.result.message || "आर्डर रोक दिया गया है। पुराना बकाया मिलने तक सामान नहीं दिया जाएगा।";
+          spokenBubble.textContent = msg;
+          speakResponse(msg);
+          if (transactionConfirmationBanner) transactionConfirmationBanner.classList.add("hidden");
+          if (data.state) renderDashboardState(data.state);
+        } else {
+          alert(data.message || "Reject karne me error aaya");
+        }
+      } catch (e) {
+        alert("Error: " + e.message);
+      }
+    });
   }
 
   // --- 5. Render Full Dashboard State Across Pages ---
@@ -528,10 +749,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (filtered.length === 0) {
       customersList.innerHTML = `
-        <div class="text-center py-8 text-[#8a7667]">
-          <i data-lucide="user-x" class="w-8 h-8 mx-auto mb-2 text-stone-400"></i>
-          <p class="text-xs">Koi grahak nahi mila.</p>
-          <button class="mt-2 text-xs font-bold text-orange-600 underline" onclick="document.getElementById('open-add-cust-modal-btn').click()">+ Naya Grahak Jodein</button>
+        <div class="empty-state-box">
+          <div class="w-12 h-12 mx-auto rounded-2xl bg-orange-100 flex items-center justify-center text-orange-600 text-2xl font-bold mb-3 shadow-xs">
+            👥
+          </div>
+          <h4 class="text-sm font-bold text-[#23160e]">कोई ग्राहक खाता नहीं मिला</h4>
+          <p class="text-xs text-[#8a7667] mt-1 max-w-sm mx-auto">
+            अपनी दुकान के नए ग्राहक का नाम, मोबाइल नंबर और उधारी खाता जोड़ें।
+          </p>
+          <button class="mt-3 px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow-sm transition inline-flex items-center gap-1.5 cursor-pointer" onclick="document.getElementById('open-add-cust-modal-btn').click()">
+            <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+            + नया ग्राहक खाता जोड़ें
+          </button>
         </div>
       `;
       if (window.lucide) window.lucide.createIcons();
@@ -624,7 +853,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (filtered.length === 0) {
-      ordersList.innerHTML = `<p class="text-stone-400 text-xs italic p-4 text-center">Koi order record nahi hai.</p>`;
+      ordersList.innerHTML = `
+        <div class="empty-state-box">
+          <div class="w-12 h-12 mx-auto rounded-2xl bg-orange-100 flex items-center justify-center text-orange-600 text-2xl font-bold mb-3 shadow-xs">
+            🧾
+          </div>
+          <h4 class="text-sm font-bold text-[#23160e]">दुकान में अभी कोई बिल नहीं है</h4>
+          <p class="text-xs text-[#8a7667] mt-1 max-w-sm mx-auto">
+            माइक बटन दबाकर बोलें और अपनी दुकान का पहला बिल 1 सेकंड में काटें!
+          </p>
+          <button class="mt-3 px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow-sm transition inline-flex items-center gap-1.5 cursor-pointer" onclick="document.querySelector('[data-page=page-voice]').click()">
+            <i data-lucide="mic" class="w-3.5 h-3.5"></i>
+            🎙️ अभी बोलकर बिल बनाएं
+          </button>
+        </div>
+      `;
+      if (window.lucide) window.lucide.createIcons();
       return;
     }
 
