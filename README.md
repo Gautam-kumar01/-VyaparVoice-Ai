@@ -207,31 +207,6 @@ Open your browser at:
 
 ---
 
-## ☁️ Vercel Serverless Deployment
-
-VyaparVoice includes turnkey configuration for deployment on **Vercel**:
-
-### 1. Push to GitHub
-```bash
-git init
-git add .
-git commit -m "Deploy VyaparVoice AI"
-git branch -M main
-git remote add origin https://github.com/<your-username>/vyaparvoice.git
-git push -u origin main
-```
-
-### 2. Deploy via Vercel Dashboard
-1. Navigate to [vercel.com/new](https://vercel.com/new).
-2. Click **Import** next to your `vyaparvoice` repository.
-3. Under **Environment Variables**, add:
-   - `DATABASE_URL`: Your Neon PostgreSQL connection string.
-   - `GEMINI_API_KEY`: Your Gemini API key.
-   - `SECRET_KEY`: A random string for session safety.
-4. Click **Deploy**! Your site is live globally in under 60 seconds.
-
----
-
 ## 💼 Commercial Viability & Unit Economics
 
 | Metric | Traditional Software | VyaparVoice AI |
