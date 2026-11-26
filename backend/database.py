@@ -1,23 +1,31 @@
 """
-VyaparVoice AI - Unified & Hardened Database Engine
-Connects to Neon PostgreSQL (from DATABASE_URL in .env) with SQLite local fallback.
+VyaparVoice AI - Unified Database Engine
+Seamlessly connects to Neon PostgreSQL (from DATABASE_URL in .env) with SQLite local fallback.
 Supports:
-- Multi-Shop Tenancy with salted password hashes & role metadata
+- Multi-Shop Tenancy (Shop Owner accounts, isolated dashboards)
 - Products, Inventory & SKUs
-- Customer Bahi-Khata Ledgers (synthetic demo data)
-- Order Drafts (Pending Confirmation & Pending HITL Approval)
-- Orders with PAID / DUES / CANCELLED status & Idempotency Keys
-- Immutable Audit Logs & Explicit Mock WhatsApp Outbox
+- Customer Bahi-Khata Ledgers
+- Orders with PAID (✅) vs DUES (⏳) Status
+- Double-entry Passbook Ledger Statements
 """
 
 import os
 import json
+import re
 import uuid
 from datetime import datetime
 from decimal import Decimal
-from werkzeug.security import generate_password_hash, check_password_hash
 
-# Load .env file if present
+def _clean_row(row):
+    if not row:
+        return None
+    d = dict(row)   
+    for k, v in d.items():
+        if isinstance(v, Decimal):
+            d[k] = float(v)
+    return d
+
+# Load .env file
 ENV_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".env"))
 if os.path.exists(ENV_PATH):
     try:
@@ -28,12 +36,13 @@ if os.path.exists(ENV_PATH):
                     k, v = line.split("=", 1)
                     os.environ.setdefault(k.strip(), v.strip())
     except Exception:
-        pass
+        pass 
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///vyaparvoice.db")
 SQLITE_FILE = os.path.join(os.path.dirname(__file__), "vyaparvoice.db")
 
 IS_POSTGRES = DATABASE_URL.startswith("postgresql://") or DATABASE_URL.startswith("postgres://")
+
 if IS_POSTGRES:
     try:
         import psycopg2
@@ -41,52 +50,25 @@ if IS_POSTGRES:
     except ImportError:
         IS_POSTGRES = False
 
-
-def _clean_row(row):
-    if not row:
-        return None
-    d = dict(row)
-    for k, v in d.items():
-        if isinstance(v, Decimal):
-            d[k] = float(v)
-    return d
-
-
-def mask_phone(phone: str) -> str:
-    """Masks phone numbers for safe public/demo display."""
-    if not phone:
-        return "Not provided"
-    digits = "".join(ch for ch in str(phone) if ch.isdigit())
-    if len(digits) < 4:
-        return "***"
-    return f"+91 {digits[-10:-8]}*** **{digits[-3:]}"
-
-
-DEMO_SHOP_IDS = ("SHOP-001", "SHOP-002")
-
 INITIAL_SHOPS = [
     {
         "id": "SHOP-001",
-        "shop_name": "Gupta Wholesale & Distribution Mart (Demo)",
+        "shop_name": "Gupta Wholesale & Distribution Mart",
         "owner_name": "Sunil Gupta",
-        "email": "gupta.demo@vyaparvoice.example",
-        "phone": "+91 90000 00101",
-        "password_hash": generate_password_hash("DemoShop#001!"),
-        "location": "Sadar Bazar, Delhi (Synthetic Demo)",
-        "role": "owner",
-        "is_demo": 1,
+        "email": "gupta@vyapar.com",
+        "phone": "+91 99223 88441",
+        "password": "password123",
+        "location": "Sadar Bazar, Delhi"
     },
     {
         "id": "SHOP-002",
-        "shop_name": "Ramesh Kirana & General Store (Demo)",
+        "shop_name": "Ramesh Kirana & General Store",
         "owner_name": "Ramesh Kumar",
-        "email": "ramesh.demo@vyaparvoice.example",
-        "phone": "+91 90000 00102",
-        "password_hash": generate_password_hash("DemoShop#002!"),
-        "location": "Gandhi Nagar, Delhi (Synthetic Demo)",
-        "role": "owner",
-        "is_demo": 1,
-    },
+        "email": "ramesh@vyapar.com",
+        "phone": "+91 98112 00000",
+        "password": "password123",
+        "location": "Gandhi Nagar, Delhi"
+    }
 ]
 
 INITIAL_PRODUCTS = [
@@ -104,49 +86,49 @@ INITIAL_CUSTOMERS = [
         "id": "CUST-101",
         "name": "Sharma General Store",
         "contact_person": "Rakesh Sharma",
-        "phone": "+91 90000 01101",
+        "phone": "+91 98112 34567",
         "location": "Laxmi Nagar, Delhi",
         "credit_limit": 50000,
         "current_balance": 18400,
         "status": "active",
-        "notes": "Synthetic demo account. Regular buyer.",
+        "notes": "Regular buyer. Prompt on 15-day cycle."
     },
     {
         "id": "CUST-102",
         "name": "Verma Ji Bakery & Mart",
         "contact_person": "Anil Verma",
-        "phone": "+91 90000 01102",
+        "phone": "+91 98765 43210",
         "location": "Gandhi Nagar Market, Delhi",
         "credit_limit": 25000,
         "current_balance": 22500,
         "status": "warning",
-        "notes": "Synthetic demo account near ₹25,000 limit; triggers approval on credit orders.",
+        "notes": "Exceeds ₹20,000 threshold. Samaan nahi denge pehle purana paisa dijiye!"
     },
     {
         "id": "CUST-103",
         "name": "Gupta Retail Corner",
         "contact_person": "Sunil Gupta",
-        "phone": "+91 90000 01103",
+        "phone": "+91 99223 88441",
         "location": "Karol Bagh, Delhi",
         "credit_limit": 100000,
         "current_balance": 8500,
         "status": "trusted",
-        "notes": "Synthetic demo account. High-limit trader.",
+        "notes": "High volume trader. Trusted account."
     },
     {
         "id": "CUST-104",
         "name": "Aggarwal Daily Needs",
         "contact_person": "Mukesh Aggarwal",
-        "phone": "+91 90000 01104",
+        "phone": "+91 98100 12345",
         "location": "Sector 7, Rohini, Delhi",
         "credit_limit": 40000,
         "current_balance": 0,
         "status": "pristine",
-        "notes": "Synthetic demo account. Zero balance.",
-    },
+        "notes": "Zero balance. Clean credit."
+    }
 ]
 
-
+# Database Wrapper to handle query differences between Postgres (%s) and SQLite (?)
 class DBWrapper:
     def __init__(self, raw_conn, is_pg=False):
         self.conn = raw_conn
@@ -158,31 +140,38 @@ class DBWrapper:
 
     def _format_sql(self, sql):
         if self.is_pg:
+            # Convert SQLite '?' placeholders to Postgres '%s'
             return sql.replace("?", "%s")
         return sql
 
     def execute(self, sql, params=()):
-        self._cur.execute(self._format_sql(sql), params)
+        formatted_sql = self._format_sql(sql)
+        self._cur.execute(formatted_sql, params)
         return self
 
     def fetchone(self):
-        return _clean_row(self._cur.fetchone())
+        row = self._cur.fetchone()
+        return _clean_row(row)
 
     def fetchall(self):
-        return [_clean_row(r) for r in self._cur.fetchall()]
+        rows = self._cur.fetchall()
+        return [_clean_row(r) for r in rows]
 
     def commit(self):
         self.conn.commit()
 
-    def rollback(self):
-        self.conn.rollback()
-
-    def close(self):
-        self.conn.close()
-
     def cursor(self):
         return self
 
+    def close(self):
+        try:
+            self._cur.close()
+        except Exception:
+            pass
+        try:
+            self.conn.close()
+        except Exception:
+            pass
 
 def get_db():
     global IS_POSTGRES
@@ -192,98 +181,21 @@ def get_db():
             return DBWrapper(pg_conn, is_pg=True)
         except Exception as e:
             print("⚠️ Neon PostgreSQL connection error, falling back to SQLite:", e)
-
+    
     import sqlite3
-    sq_conn = sqlite3.connect(SQLITE_FILE, isolation_level="DEFERRED")
+    sq_conn = sqlite3.connect(SQLITE_FILE)
     sq_conn.row_factory = sqlite3.Row
     return DBWrapper(sq_conn, is_pg=False)
 
-
+# Backward-compatible alias for agent_engine
 get_db_connection = get_db
 
-
-def _ensure_column(db, table: str, column: str, col_def: str):
-    """Safely adds missing columns for backward compatibility with existing DBs."""
-    try:
-        if db.is_pg:
-            db.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {column} {col_def}")
-            db.commit()
-        else:
-            cols = [r["name"] for r in db.execute(f"PRAGMA table_info({table})").fetchall()]
-            if column not in cols:
-                db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_def}")
-                db.commit()
-    except Exception:
-        db.rollback()
-
-
-def _seed_demo_data(db):
-    """Seeds only the synthetic demo shops (SHOP-001, SHOP-002) without touching real shops."""
-    now = datetime.now().isoformat()
-
-    for s in INITIAL_SHOPS:
-        existing = db.execute("SELECT id FROM shops WHERE id = ?", (s["id"],)).fetchone()
-        if not existing:
-            db.execute("""
-                INSERT INTO shops (id, shop_name, owner_name, email, phone, password, location, created_at, role, is_demo)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (s["id"], s["shop_name"], s["owner_name"], s["email"], s["phone"], s["password_hash"], s["location"], now, s["role"], s["is_demo"]))
-        else:
-            db.execute("""
-                UPDATE shops SET shop_name = ?, owner_name = ?, location = ?, is_demo = 1, role = 'owner'
-                WHERE id = ?
-            """, (s["shop_name"], s["owner_name"], s["location"], s["id"]))
-
-    for shop_id in DEMO_SHOP_IDS:
-        for p in INITIAL_PRODUCTS:
-            existing_p = db.execute("SELECT sku FROM products WHERE sku = ? AND shop_id = ?", (p["sku"], shop_id)).fetchone()
-            if existing_p:
-                db.execute("""
-                    UPDATE products SET name = ?, category = ?, unit = ?, price_per_unit = ?, stock = ?, min_stock = ?
-                    WHERE sku = ? AND shop_id = ?
-                """, (p["name"], p["category"], p["unit"], p["price_per_unit"], p["stock"], p["min_stock"], p["sku"], shop_id))
-            else:
-                db.execute("""
-                    INSERT INTO products (sku, shop_id, name, category, unit, price_per_unit, stock, min_stock)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (p["sku"], shop_id, p["name"], p["category"], p["unit"], p["price_per_unit"], p["stock"], p["min_stock"]))
-
-    # Seed Customers for SHOP-001 (and a lightweight set for SHOP-002)
-    for c in INITIAL_CUSTOMERS:
-        db.execute("""
-            INSERT INTO customers (id, shop_id, name, contact_person, phone, location, credit_limit, current_balance, status, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (c["id"], "SHOP-001", c["name"], c["contact_person"], c["phone"], c["location"], c["credit_limit"], c["current_balance"], c["status"], c["notes"]))
-
-    db.execute("""
-        INSERT INTO customers (id, shop_id, name, contact_person, phone, location, credit_limit, current_balance, status, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, ("CUST-201", "SHOP-002", "Mohan Kirana Corner", "Mohan Lal", "+91 90000 02201", "Gandhi Nagar, Delhi", 30000, 4500, "active", "Synthetic demo account for Shop 2."))
-
-    sample_items = json.dumps([{"sku": "SKU-PARLE", "name": "Parle-G Glucose Biscuits (Pack of 24)", "quantity": 10, "unit": "peti", "price_per_unit": 920, "item_total": 9200}])
-    db.execute("""
-        INSERT INTO orders (id, shop_id, customer_id, customer_name, items_json, total_amount, payment_mode, payment_status, status, created_at, approved_by, idempotency_key)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, ("ORD-INITIAL-01", "SHOP-001", "CUST-101", "Sharma General Store", sample_items, 9200, "credit", "DUES", "Dispatched", now, "Demo Seed", "seed-01"))
-
-    db.execute("""
-        INSERT INTO orders (id, shop_id, customer_id, customer_name, items_json, total_amount, payment_mode, payment_status, status, created_at, approved_by, idempotency_key)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, ("ORD-INITIAL-02", "SHOP-001", "CUST-104", "Aggarwal Daily Needs", sample_items, 4600, "cash", "PAID", "Dispatched", now, "Demo Seed", "seed-02"))
-
-    db.execute("""
-        INSERT INTO ledger_entries (shop_id, customer_id, order_id, entry_type, amount, previous_balance, new_balance, description, timestamp)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, ("SHOP-001", "CUST-101", "ORD-INITIAL-01", "DEBIT", 9200, 9200, 18400, "Initial Goods Dispatched (Challan #ORD-INITIAL-01)", now))
-
-    db.commit()
-
-
 def init_db(force_reset=False):
-    """Initializes tables and seeds synthetic demo data. force_reset only resets seeded demo shops."""
+    """Initializes tables and seeds initial data in Neon PostgreSQL or SQLite."""
     db = get_db()
 
     if db.is_pg:
+        # PostgreSQL Schema
         db.execute("""
         CREATE TABLE IF NOT EXISTS shops (
             id VARCHAR(64) PRIMARY KEY,
@@ -293,9 +205,7 @@ def init_db(force_reset=False):
             phone TEXT,
             password TEXT NOT NULL,
             location TEXT,
-            created_at TEXT NOT NULL,
-            role VARCHAR(32) DEFAULT 'owner',
-            is_demo INTEGER DEFAULT 0
+            created_at TEXT NOT NULL
         );
         CREATE TABLE IF NOT EXISTS products (
             sku VARCHAR(64) NOT NULL,
@@ -331,8 +241,7 @@ def init_db(force_reset=False):
             payment_status VARCHAR(32) NOT NULL,
             status VARCHAR(32) NOT NULL,
             created_at TEXT NOT NULL,
-            approved_by TEXT,
-            idempotency_key VARCHAR(128)
+            approved_by TEXT
         );
         CREATE TABLE IF NOT EXISTS ledger_entries (
             id SERIAL PRIMARY KEY,
@@ -346,53 +255,10 @@ def init_db(force_reset=False):
             description TEXT NOT NULL,
             timestamp TEXT NOT NULL
         );
-        CREATE TABLE IF NOT EXISTS order_drafts (
-            id VARCHAR(64) PRIMARY KEY,
-            shop_id VARCHAR(64) NOT NULL,
-            customer_id VARCHAR(64) NOT NULL,
-            customer_name TEXT NOT NULL,
-            items_json TEXT NOT NULL,
-            total_amount NUMERIC NOT NULL,
-            payment_mode VARCHAR(32) NOT NULL,
-            status VARCHAR(32) NOT NULL,
-            requires_approval INTEGER DEFAULT 0,
-            reason TEXT,
-            spoken_summary TEXT,
-            idempotency_key VARCHAR(128),
-            created_at TEXT NOT NULL
-        );
-        CREATE TABLE IF NOT EXISTS idempotency_records (
-            shop_id VARCHAR(64) NOT NULL,
-            idempotency_key VARCHAR(128) NOT NULL,
-            endpoint VARCHAR(64) NOT NULL,
-            response_json TEXT NOT NULL,
-            created_at TEXT NOT NULL,
-            PRIMARY KEY (shop_id, idempotency_key)
-        );
-        CREATE TABLE IF NOT EXISTS audit_logs (
-            id SERIAL PRIMARY KEY,
-            shop_id VARCHAR(64) NOT NULL,
-            actor TEXT NOT NULL,
-            action VARCHAR(64) NOT NULL,
-            entity_type VARCHAR(64) NOT NULL,
-            entity_id VARCHAR(64),
-            details_json TEXT,
-            created_at TEXT NOT NULL
-        );
-        CREATE TABLE IF NOT EXISTS whatsapp_outbox (
-            id VARCHAR(64) PRIMARY KEY,
-            shop_id VARCHAR(64) NOT NULL,
-            order_id VARCHAR(64),
-            customer_id VARCHAR(64),
-            recipient_masked TEXT NOT NULL,
-            message_text TEXT NOT NULL,
-            mode VARCHAR(32) NOT NULL,
-            status VARCHAR(32) NOT NULL,
-            created_at TEXT NOT NULL
-        );
         """)
         db.commit()
     else:
+        # SQLite Schema
         db.execute("""
         CREATE TABLE IF NOT EXISTS shops (
             id TEXT PRIMARY KEY,
@@ -402,10 +268,9 @@ def init_db(force_reset=False):
             phone TEXT,
             password TEXT NOT NULL,
             location TEXT,
-            created_at TEXT NOT NULL,
-            role TEXT DEFAULT 'owner',
-            is_demo INTEGER DEFAULT 0
-        )""")
+            created_at TEXT NOT NULL
+        )
+        """)
         db.execute("""
         CREATE TABLE IF NOT EXISTS products (
             sku TEXT NOT NULL,
@@ -417,7 +282,8 @@ def init_db(force_reset=False):
             stock INTEGER NOT NULL,
             min_stock INTEGER NOT NULL,
             PRIMARY KEY (sku, shop_id)
-        )""")
+        )
+        """)
         db.execute("""
         CREATE TABLE IF NOT EXISTS customers (
             id TEXT PRIMARY KEY,
@@ -430,7 +296,8 @@ def init_db(force_reset=False):
             current_balance REAL NOT NULL,
             status TEXT,
             notes TEXT
-        )""")
+        )
+        """)
         db.execute("""
         CREATE TABLE IF NOT EXISTS orders (
             id TEXT PRIMARY KEY,
@@ -443,9 +310,9 @@ def init_db(force_reset=False):
             payment_status TEXT NOT NULL,
             status TEXT NOT NULL,
             created_at TEXT NOT NULL,
-            approved_by TEXT,
-            idempotency_key TEXT
-        )""")
+            approved_by TEXT
+        )
+        """)
         db.execute("""
         CREATE TABLE IF NOT EXISTS ledger_entries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -458,151 +325,96 @@ def init_db(force_reset=False):
             new_balance REAL NOT NULL,
             description TEXT NOT NULL,
             timestamp TEXT NOT NULL
-        )""")
-        db.execute("""
-        CREATE TABLE IF NOT EXISTS order_drafts (
-            id TEXT PRIMARY KEY,
-            shop_id TEXT NOT NULL,
-            customer_id TEXT NOT NULL,
-            customer_name TEXT NOT NULL,
-            items_json TEXT NOT NULL,
-            total_amount REAL NOT NULL,
-            payment_mode TEXT NOT NULL,
-            status TEXT NOT NULL,
-            requires_approval INTEGER DEFAULT 0,
-            reason TEXT,
-            spoken_summary TEXT,
-            idempotency_key TEXT,
-            created_at TEXT NOT NULL
-        )""")
-        db.execute("""
-        CREATE TABLE IF NOT EXISTS idempotency_records (
-            shop_id TEXT NOT NULL,
-            idempotency_key TEXT NOT NULL,
-            endpoint TEXT NOT NULL,
-            response_json TEXT NOT NULL,
-            created_at TEXT NOT NULL,
-            PRIMARY KEY (shop_id, idempotency_key)
-        )""")
-        db.execute("""
-        CREATE TABLE IF NOT EXISTS audit_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            shop_id TEXT NOT NULL,
-            actor TEXT NOT NULL,
-            action TEXT NOT NULL,
-            entity_type TEXT NOT NULL,
-            entity_id TEXT,
-            details_json TEXT,
-            created_at TEXT NOT NULL
-        )""")
-        db.execute("""
-        CREATE TABLE IF NOT EXISTS whatsapp_outbox (
-            id TEXT PRIMARY KEY,
-            shop_id TEXT NOT NULL,
-            order_id TEXT,
-            customer_id TEXT,
-            recipient_masked TEXT NOT NULL,
-            message_text TEXT NOT NULL,
-            mode TEXT NOT NULL,
-            status TEXT NOT NULL,
-            created_at TEXT NOT NULL
-        )""")
+        )
+        """)
         db.commit()
 
-    # Ensure backward-compatible columns exist on pre-existing DBs
-    _ensure_column(db, "shops", "role", "TEXT DEFAULT 'owner'")
-    _ensure_column(db, "shops", "is_demo", "INTEGER DEFAULT 0")
-    _ensure_column(db, "orders", "idempotency_key", "TEXT")
-
-    if force_reset:
-        # SAFE RESET: Only purge and re-seed synthetic demo shops (SHOP-001, SHOP-002).
-        # Real registered shops and their customers/orders are NEVER deleted.
-        for demo_id in DEMO_SHOP_IDS:
-            for tbl in ("whatsapp_outbox", "audit_logs", "idempotency_records", "order_drafts", "ledger_entries", "orders", "customers", "products"):
-                db.execute(f"DELETE FROM {tbl} WHERE shop_id = ?", (demo_id,))
-        db.commit()
-        _seed_demo_data(db)
-        db.close()
-        return
-
-    # Initial seed if demo shops are absent
-    cnt_row = db.execute("SELECT COUNT(*) as cnt FROM shops WHERE id IN (?, ?)", DEMO_SHOP_IDS).fetchone()
-    if not cnt_row or cnt_row["cnt"] == 0:
-        _seed_demo_data(db)
-    else:
-        # Ensure existing demo shops have hashed passwords & is_demo=1
+    # Seed Shops if empty
+    db.execute("SELECT COUNT(*) as cnt FROM shops")
+    row = db.fetchone()
+    count = row["cnt"] if row else 0
+    if count == 0:
         for s in INITIAL_SHOPS:
-            row = db.execute("SELECT id, password FROM shops WHERE id = ?", (s["id"],)).fetchone()
-            if row and not str(row["password"]).startswith(("scrypt:", "pbkdf2:")):
-                db.execute("UPDATE shops SET password = ?, is_demo = 1, role = 'owner' WHERE id = ?", (s["password_hash"], s["id"]))
+            db.execute("""
+                INSERT INTO shops (id, shop_name, owner_name, email, phone, password, location, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (s["id"], s["shop_name"], s["owner_name"], s["email"], s["phone"], s["password"], s["location"], datetime.now().isoformat()))
+        db.commit()
+
+    # Seed Products for SHOP-001 & SHOP-002 if empty
+    db.execute("SELECT COUNT(*) as cnt FROM products")
+    row = db.fetchone()
+    count = row["cnt"] if row else 0
+    if count == 0:
+        for shop_id in ["SHOP-001", "SHOP-002"]:
+            for p in INITIAL_PRODUCTS:
+                db.execute("""
+                    INSERT INTO products (sku, shop_id, name, category, unit, price_per_unit, stock, min_stock)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (p["sku"], shop_id, p["name"], p["category"], p["unit"], p["price_per_unit"], p["stock"], p["min_stock"]))
+        db.commit()
+
+    # Seed Customers for SHOP-001 if empty
+    db.execute("SELECT COUNT(*) as cnt FROM customers WHERE shop_id = ?", ("SHOP-001",))
+    row = db.fetchone()
+    count = row["cnt"] if row else 0
+    if count == 0:
+        for c in INITIAL_CUSTOMERS:
+            db.execute("""
+                INSERT INTO customers (id, shop_id, name, contact_person, phone, location, credit_limit, current_balance, status, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (c["id"], "SHOP-001", c["name"], c["contact_person"], c["phone"], c["location"], c["credit_limit"], c["current_balance"], c["status"], c["notes"]))
+
+        sample_items = json.dumps([{"sku": "SKU-PARLE", "name": "Parle-G Glucose Biscuits", "quantity": 10, "unit": "peti", "price_per_unit": 920, "item_total": 9200}])
+        db.execute("""
+            INSERT INTO orders (id, shop_id, customer_id, customer_name, items_json, total_amount, payment_mode, payment_status, status, created_at, approved_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, ("ORD-INITIAL-01", "SHOP-001", "CUST-101", "Sharma General Store", sample_items, 9200, "credit", "DUES", "Dispatched", datetime.now().isoformat(), "Opening"))
+        
+        db.execute("""
+            INSERT INTO orders (id, shop_id, customer_id, customer_name, items_json, total_amount, payment_mode, payment_status, status, created_at, approved_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, ("ORD-INITIAL-02", "SHOP-001", "CUST-104", "Aggarwal Daily Needs", sample_items, 4600, "cash", "PAID", "Dispatched", datetime.now().isoformat(), "Cash Sale"))
+
+        db.execute("""
+            INSERT INTO ledger_entries (shop_id, customer_id, order_id, entry_type, amount, previous_balance, new_balance, description, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, ("SHOP-001", "CUST-101", "ORD-INITIAL-01", "DEBIT", 9200, 9200, 18400, "Initial Goods Dispatched (Challan #ORD-INITIAL-01)", datetime.now().isoformat()))
         db.commit()
 
     db.close()
 
-
-def log_audit(db, shop_id: str, actor: str, action: str, entity_type: str, entity_id: str = None, details: dict = None):
-    """Writes an immutable audit entry using the caller's DB transaction or a standalone connection."""
-    now = datetime.now().isoformat()
-    db.execute("""
-        INSERT INTO audit_logs (shop_id, actor, action, entity_type, entity_id, details_json, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (shop_id, actor, action, entity_type, entity_id, json.dumps(details or {}, default=str), now))
-
+# -------------------------------------------------------------
+# Shop Owner Auth & Operations
+# -------------------------------------------------------------
 
 def authenticate_shop(email_or_phone: str, password: str):
     db = get_db()
     q = email_or_phone.strip().lower()
     shop = db.execute("SELECT * FROM shops WHERE LOWER(email) = ? OR phone = ?", (q, email_or_phone.strip())).fetchone()
-    if not shop:
-        db.close()
-        return None
-
-    stored_pw = str(shop.get("password", ""))
-    valid = False
-    if stored_pw.startswith(("scrypt:", "pbkdf2:")):
-        valid = check_password_hash(stored_pw, password)
-    elif stored_pw and stored_pw == password:
-        # Legacy plaintext row upgrade on successful login
-        valid = True
-        db.execute("UPDATE shops SET password = ? WHERE id = ?", (generate_password_hash(password), shop["id"]))
-        db.commit()
-
     db.close()
-    if valid:
+    if not shop:
+        return None
+    if shop["password"] == password:
         shop.pop("password", None)
         return shop
     return None
 
-
-def get_demo_shop_for_login(shop_id: str):
-    """Allows 1-click demo session login ONLY for explicitly marked synthetic demo shops."""
-    if shop_id not in DEMO_SHOP_IDS:
-        return None
-    db = get_db()
-    shop = db.execute(
-        "SELECT id, shop_name, owner_name, email, phone, location, role, is_demo FROM shops WHERE id = ? AND is_demo = 1",
-        (shop_id,),
-    ).fetchone()
-    db.close()
-    return shop
-
-
 def register_shop(shop_name: str, owner_name: str, email: str, phone: str, password: str, location: str = "India"):
-    if len(password or "") < 8:
-        return {"status": "error", "message": "Password kam se kam 8 characters ka hona chahiye."}
-
     db = get_db()
+    # Unique Shop ID with UUID to guarantee no primary key collisions
     unique_suffix = uuid.uuid4().hex[:6].upper()
     new_shop_id = f"SHOP-{datetime.now().strftime('%y%m%d')}-{unique_suffix}"
     created_at = datetime.now().isoformat()
-    clean_email = email.strip().lower() if email and email.strip() else f"{new_shop_id.lower()}@vyapar.local"
-    pw_hash = generate_password_hash(password)
+
+    # Fallback unique email if empty to satisfy PostgreSQL UNIQUE constraint
+    clean_email = email.strip().lower() if email and email.strip() else f"{new_shop_id.lower()}@vyapar.in"
 
     try:
         db.execute("""
-            INSERT INTO shops (id, shop_name, owner_name, email, phone, password, location, created_at, role, is_demo)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (new_shop_id, shop_name.strip(), owner_name.strip(), clean_email, phone.strip(), pw_hash, location.strip() or "India", created_at, "owner", 0))
+            INSERT INTO shops (id, shop_name, owner_name, email, phone, password, location, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (new_shop_id, shop_name.strip(), owner_name.strip(), clean_email, phone.strip(), password, location, created_at))
 
         for p in INITIAL_PRODUCTS:
             db.execute("""
@@ -610,302 +422,208 @@ def register_shop(shop_name: str, owner_name: str, email: str, phone: str, passw
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """, (p["sku"], new_shop_id, p["name"], p["category"], p["unit"], p["price_per_unit"], p["stock"], p["min_stock"]))
 
-        log_audit(db, new_shop_id, owner_name.strip(), "SHOP_REGISTERED", "shop", new_shop_id, {"shop_name": shop_name.strip()})
         db.commit()
-        shop = db.execute("SELECT id, shop_name, owner_name, email, phone, location, role, is_demo FROM shops WHERE id = ?", (new_shop_id,)).fetchone()
+        shop = db.execute("SELECT * FROM shops WHERE id = ?", (new_shop_id,)).fetchone()
         db.close()
+        shop.pop("password", None)
         return {"status": "success", "shop": shop}
     except Exception as e:
-        db.rollback()
         db.close()
-        return {"status": "error", "message": f"Registration failed: {str(e)}"}
-
+        return {"status": "error", "message": f"Registration error: {str(e)}"}
 
 def get_all_shops():
-    """Returns only public synthetic demo shops for the demo switcher."""
     db = get_db()
-    shops = db.execute(
-        "SELECT id, shop_name, owner_name, location, is_demo FROM shops WHERE is_demo = 1 ORDER BY id ASC"
-    ).fetchall()
+    shops = db.execute("SELECT id, shop_name, owner_name, email, phone, location FROM shops ORDER BY id ASC").fetchall()
     db.close()
     return shops
 
-
 def get_shop_by_id(shop_id: str):
     db = get_db()
-    shop = db.execute(
-        "SELECT id, shop_name, owner_name, email, phone, location, role, is_demo FROM shops WHERE id = ?",
-        (shop_id,),
-    ).fetchone()
+    shop = db.execute("SELECT id, shop_name, owner_name, email, phone, location FROM shops WHERE id = ?", (shop_id,)).fetchone()
     db.close()
     return shop
 
-
-def get_all_products(shop_id: str):
+def get_all_products(shop_id: str = "SHOP-001"):
     db = get_db()
-    rows = db.execute("SELECT * FROM products WHERE shop_id = ? ORDER BY name ASC", (shop_id,)).fetchall()
+    products = db.execute("SELECT * FROM products WHERE shop_id = ? ORDER BY name ASC", (shop_id,)).fetchall()
     db.close()
-    return rows
+    return products
 
-
-def get_all_customers(shop_id: str):
+def get_all_customers(shop_id: str = "SHOP-001"):
     db = get_db()
-    rows = db.execute("SELECT * FROM customers WHERE shop_id = ? ORDER BY current_balance DESC, name ASC", (shop_id,)).fetchall()
+    customers = db.execute("SELECT * FROM customers WHERE shop_id = ? ORDER BY current_balance DESC", (shop_id,)).fetchall()
     db.close()
-    is_demo = shop_id in DEMO_SHOP_IDS
+    return customers
+
+def get_all_orders(shop_id: str = "SHOP-001"):
+    db = get_db()
+    rows = db.execute("SELECT * FROM orders WHERE shop_id = ? ORDER BY created_at DESC LIMIT 25", (shop_id,)).fetchall()
+    orders = []
     for r in rows:
-        if is_demo:
-            r["phone_display"] = mask_phone(r.get("phone", ""))
-            r["phone"] = r["phone_display"]
-        else:
-            r["phone_display"] = r.get("phone", "")
-    return rows
-
-
-def get_all_orders(shop_id: str):
-    db = get_db()
-    rows = db.execute("SELECT * FROM orders WHERE shop_id = ? ORDER BY created_at DESC LIMIT 30", (shop_id,)).fetchall()
+        d = dict(r)
+        d["items"] = json.loads(d["items_json"])
+        orders.append(d)
     db.close()
-    for d in rows:
-        try:
-            d["items"] = json.loads(d["items_json"])
-        except Exception:
-            d["items"] = []
-    return rows
+    return orders
 
-
-def get_pending_drafts(shop_id: str):
-    db = get_db()
-    rows = db.execute(
-        "SELECT * FROM order_drafts WHERE shop_id = ? AND status IN ('PENDING_CONFIRMATION', 'PENDING_APPROVAL') ORDER BY created_at DESC LIMIT 10",
-        (shop_id,),
-    ).fetchall()
-    db.close()
-    for d in rows:
-        try:
-            d["items"] = json.loads(d["items_json"])
-        except Exception:
-            d["items"] = []
-    return rows
-
-
-def get_whatsapp_outbox(shop_id: str):
-    db = get_db()
-    rows = db.execute(
-        "SELECT * FROM whatsapp_outbox WHERE shop_id = ? ORDER BY created_at DESC LIMIT 15",
-        (shop_id,),
-    ).fetchall()
-    db.close()
-    return rows
-
-
-def get_audit_logs(shop_id: str):
-    db = get_db()
-    rows = db.execute(
-        "SELECT * FROM audit_logs WHERE shop_id = ? ORDER BY id DESC LIMIT 25",
-        (shop_id,),
-    ).fetchall()
-    db.close()
-    return rows
-
-
-def get_customer_history(customer_id: str, shop_id: str):
+def get_customer_history(customer_id: str, shop_id: str = "SHOP-001"):
     db = get_db()
     cust = db.execute("SELECT * FROM customers WHERE id = ? AND shop_id = ?", (customer_id, shop_id)).fetchone()
     if not cust:
         db.close()
         return None
-    if shop_id in DEMO_SHOP_IDS:
-        cust["phone"] = mask_phone(cust.get("phone", ""))
-    orders = db.execute("SELECT * FROM orders WHERE customer_id = ? AND shop_id = ? ORDER BY created_at DESC", (customer_id, shop_id)).fetchall()
-    for od in orders:
-        try:
-            od["items"] = json.loads(od["items_json"])
-        except Exception:
-            od["items"] = []
-    ledger = db.execute("SELECT * FROM ledger_entries WHERE customer_id = ? AND shop_id = ? ORDER BY id DESC", (customer_id, shop_id)).fetchall()
+    orders = db.execute("SELECT * FROM orders WHERE customer_id = ? AND shop_id = ? ORDER BY created_at DESC LIMIT 15", (customer_id, shop_id)).fetchall()
+    orders_list = []
+    for o in orders:
+        od = dict(o)
+        od["items"] = json.loads(od["items_json"])
+        orders_list.append(od)
+    ledger = db.execute("SELECT * FROM ledger_entries WHERE customer_id = ? AND shop_id = ? ORDER BY id DESC LIMIT 25", (customer_id, shop_id)).fetchall()
     db.close()
-    return {"customer": cust, "orders": orders, "ledger": ledger}
+    return {
+        "customer": cust,
+        "recent_orders": orders_list,
+        "ledger": ledger,
+        "is_over_20k": cust["current_balance"] > 20000
+    }
 
-
-def create_or_get_customer(name: str, shop_id: str, phone: str = "", credit_limit: float = 20000.0):
+def create_or_get_customer(name: str, shop_id: str = "SHOP-001", phone: str = "", credit_limit: float = 20000):
     db = get_db()
-    existing = db.execute("SELECT * FROM customers WHERE LOWER(name) = LOWER(?) AND shop_id = ?", (name.strip(), shop_id)).fetchone()
+    name_clean = name.strip()
+
+    existing = db.execute("SELECT * FROM customers WHERE shop_id = ? AND (LOWER(name) LIKE ? OR LOWER(contact_person) LIKE ?)", 
+                          (shop_id, f"%{name_clean.lower()}%", f"%{name_clean.lower()}%")).fetchone()
     if existing:
         db.close()
         return existing, False
 
-    cust_id = f"CUST-{uuid.uuid4().hex[:6].upper()}"
+    new_id = f"CUST-{datetime.now().strftime('%y%m%d')}-{uuid.uuid4().hex[:4].upper()}"
+    phone_clean = phone.strip() or "+91 98000 00000"
+    created_at = datetime.now().isoformat()
     db.execute("""
         INSERT INTO customers (id, shop_id, name, contact_person, phone, location, credit_limit, current_balance, status, notes)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (cust_id, shop_id, name.strip(), name.strip(), phone or "", "Local Market", credit_limit, 0.0, "active", "Auto-created via voice counter"))
-    log_audit(db, shop_id, "VoiceAgent", "CUSTOMER_CREATED", "customer", cust_id, {"name": name.strip()})
-    db.commit()
-    created = db.execute("SELECT * FROM customers WHERE id = ? AND shop_id = ?", (cust_id, shop_id)).fetchone()
-    db.close()
-    return created, True
+    """, (new_id, shop_id, name_clean, name_clean, phone_clean, "Local Grahak", credit_limit, 0.0, "new", f"Auto-created on {datetime.now().strftime('%d %b %Y')}"))
 
-
-def delete_customer(customer_id: str, shop_id: str, actor: str = "ShopOwner"):
-    db = get_db()
-    cust = db.execute("SELECT id, name FROM customers WHERE id = ? AND shop_id = ?", (customer_id, shop_id)).fetchone()
-    if not cust:
-        db.close()
-        return {"status": "error", "message": "Customer not found in this shop."}
-
-    db.execute("DELETE FROM ledger_entries WHERE customer_id = ? AND shop_id = ?", (customer_id, shop_id))
-    db.execute("DELETE FROM orders WHERE customer_id = ? AND shop_id = ?", (customer_id, shop_id))
-    db.execute("DELETE FROM order_drafts WHERE customer_id = ? AND shop_id = ?", (customer_id, shop_id))
-    db.execute("DELETE FROM customers WHERE id = ? AND shop_id = ?", (customer_id, shop_id))
-    log_audit(db, shop_id, actor, "CUSTOMER_DELETED", "customer", customer_id, {"name": cust["name"]})
-    db.commit()
-    db.close()
-    return {"status": "success", "deleted_id": customer_id}
-
-
-def add_manual_customer(shop_id: str, name: str, phone: str = "", location: str = "Local", credit_limit: float = 20000.0, initial_dues: float = 0.0, actor: str = "ShopOwner"):
-    db = get_db()
-    cust_id = f"CUST-{uuid.uuid4().hex[:6].upper()}"
-    status = "warning" if initial_dues > credit_limit else "active"
     db.execute("""
-        INSERT INTO customers (id, shop_id, name, contact_person, phone, location, credit_limit, current_balance, status, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (cust_id, shop_id, name.strip(), name.strip(), phone.strip(), location.strip(), float(credit_limit), float(initial_dues), status, "Added via Shop Dashboard"))
+        INSERT INTO ledger_entries (shop_id, customer_id, order_id, entry_type, amount, previous_balance, new_balance, description, timestamp)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (shop_id, new_id, None, "OPENING_BALANCE", 0.0, 0.0, 0.0, "New Bahi-Khata ledger created via voice", created_at))
 
-    if initial_dues > 0:
-        db.execute("""
-            INSERT INTO ledger_entries (shop_id, customer_id, order_id, entry_type, amount, previous_balance, new_balance, description, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (shop_id, cust_id, "OPENING", "DEBIT", float(initial_dues), 0.0, float(initial_dues), "Opening Udhar Balance", datetime.now().isoformat()))
-
-    log_audit(db, shop_id, actor, "CUSTOMER_ADDED", "customer", cust_id, {"name": name.strip(), "initial_dues": float(initial_dues)})
     db.commit()
-    created = db.execute("SELECT * FROM customers WHERE id = ? AND shop_id = ?", (cust_id, shop_id)).fetchone()
+    new_cust = db.execute("SELECT * FROM customers WHERE id = ?", (new_id,)).fetchone()
     db.close()
-    return created
+    return new_cust, True
 
-
-def record_customer_payment(customer_id: str, shop_id: str, amount: float, note: str = "Cash Payment Received", actor: str = "ShopOwner", idempotency_key: str = None):
-    if amount <= 0:
-        return {"status": "error", "message": "Payment amount must be greater than zero."}
-
+def delete_customer(customer_id: str, shop_id: str):
+    """
+    Permanently erases a customer and all their ledger/passbook reports for the shop.
+    Just like Khatabook's delete/erase khata.
+    """
     db = get_db()
-    if idempotency_key:
-        cached = db.execute(
-            "SELECT response_json FROM idempotency_records WHERE shop_id = ? AND idempotency_key = ?",
-            (shop_id, idempotency_key),
-        ).fetchone()
-        if cached:
-            db.close()
-            resp = json.loads(cached["response_json"])
-            resp["idempotent_replay"] = True
-            return resp
-
     cust = db.execute("SELECT * FROM customers WHERE id = ? AND shop_id = ?", (customer_id, shop_id)).fetchone()
     if not cust:
         db.close()
-        return {"status": "error", "message": "Customer not found in this shop."}
+        return {"status": "error", "message": "Grahak nahi mila."}
+    
+    # 1. Delete all ledger entries
+    db.execute("DELETE FROM ledger_entries WHERE customer_id = ? AND shop_id = ?", (customer_id, shop_id))
+    # 2. Delete all orders
+    db.execute("DELETE FROM orders WHERE customer_id = ? AND shop_id = ?", (customer_id, shop_id))
+    # 3. Delete customer record
+    db.execute("DELETE FROM customers WHERE id = ? AND shop_id = ?", (customer_id, shop_id))
+    db.commit()
+    db.close()
+    return {"status": "success", "message": f"{cust['name']} ka bahi-khata aur saare reports safaltapoorvak erase/delete kar diye gaye hain."}
 
-    prev_balance = float(cust["current_balance"])
-    new_balance = max(0.0, prev_balance - float(amount))
-    now = datetime.now().isoformat()
+def add_manual_customer(shop_id: str, name: str, phone: str = "", location: str = "Local", credit_limit: float = 20000, initial_dues: float = 0.0):
+    """
+    Manually adds a customer from the Khatabook UI with optional opening dues.
+    """
+    db = get_db()
+    name_clean = name.strip()
+    if not name_clean:
+        db.close()
+        return {"status": "error", "message": "Grahak ka naam zaroori hai."}
 
-    try:
-        db.execute("UPDATE customers SET current_balance = ?, status = ? WHERE id = ? AND shop_id = ?",
-                   (new_balance, "warning" if new_balance > float(cust["credit_limit"]) else "active", customer_id, shop_id))
+    new_id = f"CUST-{datetime.now().strftime('%y%m%d')}-{uuid.uuid4().hex[:4].upper()}"
+    phone_clean = phone.strip() or "+91 98000 00000"
+    created_at = datetime.now().isoformat()
+    init_bal = float(initial_dues)
+
+    db.execute("""
+        INSERT INTO customers (id, shop_id, name, contact_person, phone, location, credit_limit, current_balance, status, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (new_id, shop_id, name_clean, name_clean, phone_clean, location.strip() or "Local", credit_limit, init_bal, "active", f"Manual Entry on {datetime.now().strftime('%d %b %Y')}"))
+
+    if init_bal > 0:
         db.execute("""
             INSERT INTO ledger_entries (shop_id, customer_id, order_id, entry_type, amount, previous_balance, new_balance, description, timestamp)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (shop_id, customer_id, None, "CREDIT_PAYMENT", float(amount), prev_balance, new_balance, note, now))
+        """, (shop_id, new_id, None, "OPENING_BALANCE", init_bal, 0.0, init_bal, "Purana Bakaya (Opening Dues Balance)", created_at))
+    else:
+        db.execute("""
+            INSERT INTO ledger_entries (shop_id, customer_id, order_id, entry_type, amount, previous_balance, new_balance, description, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (shop_id, new_id, None, "OPENING_BALANCE", 0.0, 0.0, 0.0, "Naya Bahi-Khata Khata Shuru", created_at))
 
-        resp = {
-            "status": "success",
-            "customer_name": cust["name"],
-            "previous_balance": prev_balance,
-            "paid_amount": float(amount),
-            "new_balance": new_balance,
-        }
-        log_audit(db, shop_id, actor, "PAYMENT_RECORDED", "customer", customer_id, resp)
-        if idempotency_key:
-            db.execute("""
-                INSERT INTO idempotency_records (shop_id, idempotency_key, endpoint, response_json, created_at)
-                VALUES (?, ?, ?, ?, ?)
-            """, (shop_id, idempotency_key, "record_payment", json.dumps(resp), now))
-        db.commit()
-        db.close()
-        return resp
-    except Exception as e:
-        db.rollback()
-        db.close()
-        return {"status": "error", "message": f"Payment failed: {str(e)}"}
-
-
-def restock_product(shop_id: str, sku: str, add_qty: int, actor: str = "ShopOwner"):
-    if add_qty <= 0:
-        return {"status": "error", "message": "Restock quantity must be positive."}
-    db = get_db()
-    prod = db.execute("SELECT * FROM products WHERE sku = ? AND shop_id = ?", (sku, shop_id)).fetchone()
-    if not prod:
-        db.close()
-        return {"status": "error", "message": "Product not found in this shop."}
-    new_stock = int(prod["stock"]) + int(add_qty)
-    db.execute("UPDATE products SET stock = ? WHERE sku = ? AND shop_id = ?", (new_stock, sku, shop_id))
-    log_audit(db, shop_id, actor, "PRODUCT_RESTOCKED", "product", sku, {"added": int(add_qty), "new_stock": new_stock})
     db.commit()
+    new_cust = db.execute("SELECT * FROM customers WHERE id = ?", (new_id,)).fetchone()
     db.close()
-    return {"status": "success", "sku": sku, "new_stock": new_stock}
+    return {"status": "success", "customer": new_cust}
 
-
-def add_product(shop_id: str, name: str, unit: str, price_per_unit: float, stock: int, min_stock: int = 10, category: str = "General", actor: str = "ShopOwner"):
-    if not name.strip() or price_per_unit <= 0 or stock < 0:
-        return {"status": "error", "message": "Valid product name, positive price, and non-negative stock required."}
+def record_customer_payment(customer_id: str, shop_id: str, amount: float, note: str = "Cash received via voice"):
     db = get_db()
-    sku = f"SKU-{uuid.uuid4().hex[:5].upper()}"
+    cust = db.execute("SELECT * FROM customers WHERE id = ? AND shop_id = ?", (customer_id, shop_id)).fetchone()
+    if not cust:
+        db.close()
+        return {"status": "error", "message": "Grahak nahi mila."}
+
+    prev_balance = float(cust["current_balance"])
+    new_balance = max(0.0, prev_balance - amount)
+    now_ts = datetime.now().isoformat()
+
     db.execute("""
-        INSERT INTO products (sku, shop_id, name, category, unit, price_per_unit, stock, min_stock)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, (sku, shop_id, name.strip()[:120], category.strip()[:40] or "General", unit.strip()[:24] or "peti", float(price_per_unit), int(stock), int(min_stock)))
-    log_audit(db, shop_id, actor, "PRODUCT_ADDED", "product", sku, {"name": name.strip(), "stock": int(stock)})
+        INSERT INTO ledger_entries (shop_id, customer_id, order_id, entry_type, amount, previous_balance, new_balance, description, timestamp)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (shop_id, customer_id, None, "PAYMENT_RECEIVED", amount, prev_balance, new_balance, f"Payment Received: {note}", now_ts))
+
+    db.execute("UPDATE customers SET current_balance = ? WHERE id = ? AND shop_id = ?", (new_balance, customer_id, shop_id))
     db.commit()
     db.close()
-    return {"status": "success", "sku": sku}
 
+    return {
+        "status": "success",
+        "customer_name": cust["name"],
+        "amount_paid": amount,
+        "previous_balance": prev_balance,
+        "new_balance": new_balance,
+        "timestamp": now_ts,
+        "message": f"{cust['name']} ka ₹{amount:,.0f} payment jama ho gaya. Naya bakaya: ₹{new_balance:,.0f}"
+    }
 
-def get_full_state(shop_id: str):
-    shop = get_shop_by_id(shop_id)
-    products = get_all_products(shop_id)
+def get_full_state(shop_id: str = "SHOP-001"):
+    shop = get_shop_by_id(shop_id) or INITIAL_SHOPS[0]
     customers = get_all_customers(shop_id)
+    products = get_all_products(shop_id)
     orders = get_all_orders(shop_id)
-    drafts = get_pending_drafts(shop_id)
-    outbox = get_whatsapp_outbox(shop_id)
-    audit_logs = get_audit_logs(shop_id)
 
-    total_receivables = sum(float(c["current_balance"]) for c in customers)
-    low_stock_count = sum(1 for p in products if int(p["stock"]) <= int(p["min_stock"]))
-    paid_orders_count = sum(1 for o in orders if o["payment_status"] == "PAID" and o["status"] != "Cancelled")
-    dues_orders_count = sum(1 for o in orders if o["payment_status"] == "DUES" and o["status"] != "Cancelled")
-    total_cash_sales = sum(float(o["total_amount"]) for o in orders if o["payment_status"] == "PAID" and o["status"] != "Cancelled")
-    total_credit_sales = sum(float(o["total_amount"]) for o in orders if o["payment_status"] == "DUES" and o["status"] != "Cancelled")
+    total_dues = sum(float(c["current_balance"]) for c in customers)
+    total_sales = sum(float(o["total_amount"]) for o in orders if o["status"] != "Cancelled")
+    paid_count = sum(1 for o in orders if o.get("payment_status") == "PAID")
+    dues_count = sum(1 for o in orders if o.get("payment_status") == "DUES")
 
     return {
         "shop": shop,
         "products": products,
         "customers": customers,
         "recent_orders": orders,
-        "pending_drafts": drafts,
-        "whatsapp_outbox": outbox,
-        "audit_logs": audit_logs,
         "stats": {
-            "total_receivables": total_receivables,
-            "low_stock_count": low_stock_count,
-            "total_orders": len(orders),
-            "paid_orders_count": paid_orders_count,
-            "dues_orders_count": dues_orders_count,
-            "total_cash_sales": total_cash_sales,
-            "total_credit_sales": total_credit_sales,
-            "total_customers": len(customers),
-            "pending_approvals_count": sum(1 for d in drafts if d["status"] == "PENDING_APPROVAL"),
-            "pending_confirmations_count": sum(1 for d in drafts if d["status"] == "PENDING_CONFIRMATION"),
-        },
+            "total_receivables": total_dues,
+            "total_sales": total_sales,
+            "total_grahak": len(customers),
+            "orders_count": len(orders),
+            "paid_orders": paid_count,
+            "dues_orders": dues_count
+        }
     }
