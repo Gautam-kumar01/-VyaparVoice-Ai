@@ -14,6 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let activeHitlDraft = null;
   let lastCommittedOrderId = null;
   let speechEnabled = true;
+  let activeOrderFilter = "all";
 
   // --- Gemini Live Audio State ---
   let liveWs = null;
@@ -210,6 +211,7 @@ document.addEventListener("DOMContentLoaded", () => {
       activeShop = state.shop;
       $("current-shop-name").textContent = state.shop.shop_name;
       $("auth-btn-text").textContent = state.shop.owner_name;
+      $("logout-btn")?.classList.remove("hidden");
       const badgeData = $("badge-data-mode");
       if (badgeData) {
         badgeData.textContent = state.shop.is_demo ? "Synthetic Demo Data" : "Private Registered Shop";
@@ -305,8 +307,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderProducts(products) {
     const container = $("products-list");
+    const q = ($("product-search-input")?.value || "").toLowerCase().trim();
+    const filtered = products.filter((p) => !q || p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q));
     container.replaceChildren();
-    products.forEach((p) => {
+    if (filtered.length === 0) {
+      container.appendChild(el("p", "text-xs text-[#8a7667] m-0", "Koi product nahi mila."));
+      return;
+    }
+    filtered.forEach((p) => {
       const low = Number(p.stock) <= Number(p.min_stock);
       const card = el("div", `p-4 rounded-xl border ${low ? "border-red-300 bg-red-50" : "border-[#e8ddd4] bg-[#faf7f3]"} space-y-1.5`);
       card.appendChild(el("div", "text-xs font-mono text-[#8a7667]", p.sku));
@@ -332,11 +340,16 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderOrders(orders) {
     const container = $("orders-list");
     container.replaceChildren();
-    if (orders.length === 0) {
-      container.appendChild(el("p", "text-xs text-[#8a7667] m-0", "Abhi koi order nahi hai."));
+    const filtered = (orders || []).filter((o) => {
+      if (activeOrderFilter === "all") return true;
+      if (activeOrderFilter === "Cancelled") return o.status === "Cancelled";
+      return o.status !== "Cancelled" && o.payment_status === activeOrderFilter;
+    });
+    if (filtered.length === 0) {
+      container.appendChild(el("p", "text-xs text-[#8a7667] m-0", "Is filter mein koi order nahi hai."));
       return;
     }
-    orders.forEach((o) => {
+    filtered.forEach((o) => {
       const card = el("div", "p-3.5 rounded-xl border border-[#e8ddd4] bg-[#faf7f3] space-y-1.5");
       const top = el("div", "flex items-center justify-between gap-2");
       top.appendChild(el("span", "text-xs font-mono font-bold text-[#23160e]", `${o.id} — ${o.customer_name}`));
@@ -356,6 +369,32 @@ document.addEventListener("DOMContentLoaded", () => {
       container.appendChild(card);
     });
   }
+
+  $("product-search-input")?.addEventListener("input", () => {
+    if (latestState) renderProducts(latestState.products || []);
+  });
+  document.querySelectorAll(".order-filter-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      activeOrderFilter = btn.getAttribute("data-filter") || "all";
+      document.querySelectorAll(".order-filter-btn").forEach((b) => {
+        const isAct = b === btn;
+        b.className = isAct
+          ? "order-filter-btn px-2.5 py-1 rounded-lg bg-orange-600 text-white text-[11px] font-bold border-0 cursor-pointer"
+          : "order-filter-btn px-2.5 py-1 rounded-lg bg-[#faf7f3] border border-[#e8ddd4] text-[#49382c] text-[11px] font-bold cursor-pointer";
+      });
+      if (latestState) renderOrders(latestState.recent_orders || []);
+    });
+  });
+  $("logout-btn")?.addEventListener("click", async () => {
+    await apiFetch("/api/auth/logout", { method: "POST", body: JSON.stringify({}) });
+    csrfToken = "";
+    activeShop = null;
+    latestState = null;
+    $("current-shop-name").textContent = "Not Logged In";
+    $("auth-btn-text").textContent = "Dukan Login";
+    $("logout-btn")?.classList.add("hidden");
+    showAuthBanner(true);
+  });
 
   // --- Add Product Modal ---
   $("open-add-prod-modal-btn")?.addEventListener("click", () => $("add-product-modal").classList.remove("hidden"));
@@ -449,7 +488,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   $("close-challan-modal-btn")?.addEventListener("click", () => $("challan-modal").classList.add("hidden"));
   $("print-challan-btn")?.addEventListener("click", () => window.print());
-  }
 
   function renderWhatsappOutbox(outbox) {
     const container = $("whatsapp-outbox-list");
